@@ -1,4 +1,4 @@
-# Assignment_1
+# Project
 
 ## For Mac
 
