@@ -1,16 +1,17 @@
 #ifndef MAZE_H
 #define MAZE_H
-#include <iostream>
 #include <string>
 #include <vector>
 
+#include "Vector2f.h"
 #include "Vector3f.h"
+#include "Screen.h"
 
 struct Face {
   const unsigned int v1, v2, v3, n1, n2, n3;
 };
 
-class Maze {
+class Maze : public Drawable {
 public:
   Maze();
   Maze(std::string objFilePath);
@@ -19,7 +20,7 @@ public:
   void loadObj(std::string objFilePath);
 
   // Render the model
-  void renderModel();
+  void draw();
 
   // Get model overall size in X axis
   float getSizeX();
@@ -27,6 +28,12 @@ public:
   float getSizeY();
   // Get model overall size in Z axis
   float getSizeZ();
+
+  // Get the maze starting (edge) position
+  Vector2f getMazeStartPos();
+
+  // Get the maze ending (edge) position
+  Vector2f getMazeEndPos();
 
   // attributes
   float minX = 0.0f, minY = 0.0f, minZ = 0.0f;

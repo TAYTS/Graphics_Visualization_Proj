@@ -4,6 +4,7 @@
 #elif defined _WIN32 || defined _WIN64
 #include <glut.h>
 #endif
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <limits>
@@ -87,7 +88,7 @@ void Maze::loadObj(string objFilePath) {
   }
 }
 
-void Maze::renderModel() {
+void Maze::draw() {
   glBegin(GL_TRIANGLES);
   for (auto face : this->faces) {
     glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
@@ -109,3 +110,7 @@ void Maze::renderModel() {
 float Maze::getSizeX() { return this->maxX - this->minX; }
 float Maze::getSizeY() { return this->maxZ - this->minZ; }
 float Maze::getSizeZ() { return this->maxY - this->minY; }
+
+Vector2f Maze::getMazeStartPos() { return Vector2f(0.0f, this->maxY); }
+
+Vector2f Maze::getMazeEndPos() { return Vector2f(0.0f, this->minY); }
