@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "Vector3f.h"
 
@@ -18,17 +19,24 @@ public:
   virtual void draw() = 0;
 };
 
+typedef std::map<std::string, Drawable *> ObjMap;
 class Screen {
 public:
   // Load the .obj file and override the faces stored
-  void addObjNode(Drawable *objNode);
+  void addObjNode(std::string objKey, Drawable *objNode);
 
   // Render the models in screen
   void drawScreen();
 
-private:
+  Drawable *getObject(std::string objKey);
+
+  // Mouse interaction attributes
+  GLint mouseModifiers = 0;
+  GLint mouseButton = 0;
+  int prevMouseX, prevMouseY;
+
   // attributes
-  std::vector<Drawable *> childNodes;
+  ObjMap childNodes;
 };
 
 #endif

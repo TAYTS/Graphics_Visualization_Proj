@@ -2,10 +2,19 @@
 
 using namespace std;
 
-void Screen::addObjNode(Drawable *objNode) { this->childNodes.push_back(objNode); }
+void Screen::addObjNode(string objKey, Drawable *objNode) { this->childNodes[objKey] = objNode; }
 
 void Screen::drawScreen() {
-  for (Drawable *obj : this->childNodes) {
-    obj->draw();
+  for (auto const &obj : this->childNodes) {
+    obj.second->draw();
   }
 };
+
+Drawable *Screen::getObject(string objKey) {
+  ObjMap::iterator obj = this->childNodes.find(objKey);
+  if (obj != this->childNodes.end()) {
+    return obj->second;
+  } else {
+    return NULL;
+  }
+}

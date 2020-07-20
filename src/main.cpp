@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <math.h>
+#include <map>
+
 #include "vecmath.h"
 #include "Maze.h"
 #include "Screen.h"
@@ -14,50 +16,25 @@
 
 using namespace std;
 
-////////////////////////////////////
-//        Global Variables        //
-////////////////////////////////////
 #define _ZNEAR 1.0
 #define _ZFAR 100.0
 #define _ROTSCALE 0.5
-#define MAX_BUFFER_SIZE 1024
+#define FOV 60.0
 
-// Current field of view
-const double FOV = 60;
-
-// Mouse interaction
-GLint mouseModifiers = 0;
-GLint mouseButton = 0;
-int prevMouseX, prevMouseY;
-
-// Material color table
-GLfloat colorTable[4][4] = {
-    {0.5, 0.5, 0.9, 1.0}, {0.9, 0.5, 0.5, 1.0}, {0.5, 0.9, 0.3, 1.0}, {0.3, 0.8, 0.9, 1.0}};
-
-// Current material color and color ID
-GLfloat diffuseColor[4];
-int colorID = 0;
-Maze maze;
-vector<Drawable *> models;
+////////////////////////////////////
+//        Global Variables        //
+////////////////////////////////////
+Screen screen = Screen();
 
 ////////////////////////////////////
 //      Modification Functions    //
 ////////////////////////////////////
-void SetDiffuseColor(int colorID) {
-  // Set the diffueColor using the colorTable and current colorID
-  for (int i = 0; i < sizeof(diffuseColor) / sizeof(diffuseColor[0]); i++) {
-    diffuseColor[i] = colorTable[colorID][i];
-  }
-
-  // Set the object diffuse color
-  glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseColor);
-}
-
 void RotateModel(double angle, Vector3f axis) {
   double mat[16];
 
   glGetDoublev(GL_MODELVIEW_MATRIX, mat);
   glLoadIdentity();
+
   glTranslated(mat[12], mat[13], mat[14]);
   glRotated(angle, axis[0], axis[1], axis[2]);
   glTranslated(-mat[12], -mat[13], -mat[14]);
@@ -69,8 +46,8 @@ void ScaleModel(double scale) {
   double mat[16];
 
   glGetDoublev(GL_MODELVIEW_MATRIX, mat);
-
   glLoadIdentity();
+
   glTranslated(mat[12], mat[13], mat[14]);
   glScaled(scale, scale, scale);
   glTranslated(-mat[12], -mat[13], -mat[14]);
@@ -95,7 +72,10 @@ void resetProjectionView() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(FOV, aspectRatio, _ZNEAR, _ZFAR);
-  glTranslatef(0.0f, 0.0f, maze.minX / tan(FOV));
+  Maze *maze = (Maze *)screen.getObject("maze");
+  if (maze != NULL) {
+    glTranslatef(0.0f, 0.0f, maze->minX / tan(FOV));
+  }
 
   // Reset matrix mode
   glMatrixMode(GL_MODELVIEW);
@@ -110,9 +90,8 @@ void initRendering() {
   GLfloat ambient[] = {0.3f, 0.3f, 0.3f, 1.0f};
   GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
   GLfloat shininess[] = {100.0};
-  SetDiffuseColor(colorID);
-
   GLfloat position[] = {0.0f, 0.0f, 1.0f, 0.0f};
+  GLfloat diffuseColor[4] = {0.5, 0.5, 0.9, 1.0};
 
   // 1. various status
   glEnable(GL_DEPTH_TEST);
@@ -201,14 +180,14 @@ void mouse(int button, int state, int x, int y) {
   // here to compute mouseButton, we have to use two
   // cases here:
   if (state == GLUT_DOWN)
-    mouseButton = mouseButton | (1 << (button));
+    screen.mouseButton = screen.mouseButton | (1 << (button));
   else
-    mouseButton = mouseButton & (~(1 << (button)));
+    screen.mouseButton = screen.mouseButton & (~(1 << (button)));
 
-  mouseModifiers = glutGetModifiers();
+  screen.mouseModifiers = glutGetModifiers();
 
-  prevMouseX = x;
-  prevMouseY = y;
+  screen.prevMouseX = x;
+  screen.prevMouseY = y;
 }
 
 void motion(int x, int y) {
@@ -217,25 +196,25 @@ void motion(int x, int y) {
   int dx, dy;
 
   y = glutGet(GLUT_WINDOW_HEIGHT) - 1 - y;
-  dx = x - prevMouseX;
-  dy = y - prevMouseY;
+  dx = x - screen.prevMouseX;
+  dy = y - screen.prevMouseY;
 
   if (dx == 0 && dy == 0)
     return;
 
-  prevMouseX = x;
-  prevMouseY = y;
+  screen.prevMouseX = x;
+  screen.prevMouseY = y;
 
   glMatrixMode(GL_MODELVIEW);
 
-  switch (mouseButton) {
+  switch (screen.mouseButton) {
     ////////////////////////////////////////
     // LEFT BUTTON
 
   case 0x1:
 
     // Scale the model
-    if (mouseModifiers == GLUT_ACTIVE_SHIFT) {
+    if (screen.mouseModifiers == GLUT_ACTIVE_SHIFT) {
       if (dy > 0)
         scale = 1 + 0.001 * sqrt(dx * dx + dy * dy);
       else
@@ -273,13 +252,11 @@ void motion(int x, int y) {
   }
 }
 
-void drawScene(void) {
+void drawScene() {
   // Clear the rendering window
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  for (Drawable *model : models) {
-    model->draw();
-  }
+  screen.drawScreen();
 
   // Dump the image to the screen.
   glutSwapBuffers();
@@ -305,13 +282,12 @@ int main(int argc, char **argv) {
   glutInit(&argc, argv);
 
   // Load object
-  maze.loadObj("../data/maze_15x15.obj");
-  Vector3f initPos = Vector3f(maze.getMazeStartPos(), 0.0f);
-  ball.setNewCenter(initPos);
+  Maze maze = Maze("../data/maze_15x15.obj");
+  ball.setNewCenter(Vector3f(maze.getMazeStartPos(), 0.0f));
 
-  // Stored all objects
-  models.push_back(&maze);
-  models.push_back(&ball);
+  // Stored all objects in screen obj
+  screen.addObjNode("maze", &maze);
+  screen.addObjNode("ball", &ball);
 
   // Setup the display window
   int winWidth, windHeight, winPosX, winPosY;
