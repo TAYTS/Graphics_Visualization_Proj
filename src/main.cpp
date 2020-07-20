@@ -6,8 +6,11 @@
 #endif
 
 #include <iostream>
+#include <math.h>
 #include "vecmath.h"
 #include "Maze.h"
+#include "Screen.h"
+#include "Ball.h"
 
 using namespace std;
 
@@ -34,8 +37,8 @@ GLfloat colorTable[4][4] = {
 // Current material color and color ID
 GLfloat diffuseColor[4];
 int colorID = 0;
-
 Maze maze;
+vector<Drawable *> models;
 
 ////////////////////////////////////
 //      Modification Functions    //
@@ -81,7 +84,6 @@ void ScaleModel(double scale) {
 void resetView() {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  glTranslatef(0.0f, 0.0f, -10.0f);
 }
 
 void resetProjectionView() {
@@ -93,6 +95,7 @@ void resetProjectionView() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(FOV, aspectRatio, _ZNEAR, _ZFAR);
+  glTranslatef(0.0f, 0.0f, maze.minX / tan(FOV));
 
   // Reset matrix mode
   glMatrixMode(GL_MODELVIEW);
@@ -106,16 +109,14 @@ void reshape(int w, int h) {
 void initRendering() {
   GLfloat ambient[] = {0.3f, 0.3f, 0.3f, 1.0f};
   GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
-  GLfloat shininess[] = {50.0};
+  GLfloat shininess[] = {100.0};
   SetDiffuseColor(colorID);
 
   GLfloat position[] = {0.0f, 0.0f, 1.0f, 0.0f};
 
-  ////////////////////////////////////////////////////////////////////
   // 1. various status
-
   glEnable(GL_DEPTH_TEST);
-  glClearDepth(1.0f);
+  glClearDepth(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glDepthFunc(GL_LESS);
 
   // Anti-aliasing
@@ -137,7 +138,7 @@ void initRendering() {
   // 3. Material
 
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
   glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
   glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseColor);
 
@@ -148,8 +149,8 @@ void initRendering() {
 
   glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseColor);
-  glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
-  glLightfv(GL_LIGHT0, GL_POSITION, position);
+  // glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+  // glLightfv(GL_LIGHT0, GL_POSITION, position);
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
 
@@ -276,7 +277,9 @@ void drawScene(void) {
   // Clear the rendering window
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  maze.renderModel();
+  for (Drawable *model : models) {
+    model->draw();
+  }
 
   // Dump the image to the screen.
   glutSwapBuffers();
@@ -290,11 +293,25 @@ void windowSetup(int winWidth, int winHeight, int winPosX, int winPosY, string w
   glutCreateWindow(winName.data());
 }
 
+Ball ball(0.4f);
+
+void updateBallPos(int time) {
+  ball.setNewCenter(ball.center + Vector3f(0.0, -0.5f, 0.0f));
+  glutPostRedisplay();
+  glutTimerFunc(1000.0 / 60.0, updateBallPos, 0);
+}
+
 int main(int argc, char **argv) {
   glutInit(&argc, argv);
 
   // Load object
   maze.loadObj("../data/maze_15x15.obj");
+  Vector3f initPos = Vector3f(maze.getMazeStartPos(), 0.0f);
+  ball.setNewCenter(initPos);
+
+  // Stored all objects
+  models.push_back(&maze);
+  models.push_back(&ball);
 
   // Setup the display window
   int winWidth, windHeight, winPosX, winPosY;
@@ -312,6 +329,9 @@ int main(int argc, char **argv) {
   glutKeyboardFunc(keyboard);
   glutMouseFunc(mouse);
   glutMotionFunc(motion);
+
+  glutPostRedisplay();
+  glutTimerFunc(1000.0 / 60.0, updateBallPos, 0);
 
   // Rendering loop
   glutMainLoop();
