@@ -2,12 +2,7 @@
 
 #include "Hit.h"
 #include "Ray.h"
-  
-  void Physics::setGravity(float g) {
-	  this->gravity = g;
-  }
-  
-  float getGravity() { return this->gravity; }
 
-  
+void Physics::setGravity(float g) { this->gravity = g; }
 
+float Physics::getGravity() { return this->gravity; }

@@ -9,4 +9,4 @@
 #include "Vector3f.h"
 #include "Vector4f.h"
 
-#endif // VECMATH_H
+#endif

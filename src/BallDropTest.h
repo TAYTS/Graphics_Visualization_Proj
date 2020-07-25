@@ -8,7 +8,6 @@
 #include <glut.h>
 #endif
 
-
 #include <vector>
 #include "Physics.h"
 #include "Plane.h"
