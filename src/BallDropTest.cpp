@@ -9,13 +9,9 @@
 #include "Physics.h"
 #include "Plane.h"
 #include "Ball.h"
-
+#include "Screen.h"
 
 using namespace std;
-
-#define _ZNEAR 0.1
-#define _ZFAR 100.0
-#define _ROTSCALE 0.5
 
 #define MAX_BUFFER_SIZE 1024
 
@@ -34,7 +30,7 @@ GLfloat colour[4] = {0.3, 0.3, 0.9, 1.0};
 
 Plane basePlane(Vector3f(0, 1.0f, 0), -0.8f);
 Plane topPlane(Vector3f(0, -1.0f, 0), 0.8f);
-Ball testBall(Vector2f(0, 1.23f), 0.2f, 0.95f);
+Ball testBall(0.2f, 0.95f, Vector3f(0, 1.23f, 0));
 
 void resetView() {
   glMatrixMode(GL_MODELVIEW);
@@ -116,24 +112,23 @@ void reshape(int w, int h) {
   resetProj();
 }
 
-
 void renderModel() {
-	
-	/*
-	glPushMatrix();
 
-	//testBall.getCenter().print();
-    glMultMatrixf(Matrix4f::translation(Vector3f(testBall.getCenter(),0.0f)));
-    glutSolidSphere(testBall.getRadius(), 12, 12);
-    glPopMatrix();*/
+  /*
+  glPushMatrix();
 
-	testBall.draw();
+  //testBall.getCenter().print();
+glMultMatrixf(Matrix4f::translation(Vector3f(testBall.getCenter(),0.0f)));
+glutSolidSphere(testBall.getRadius(), 12, 12);
+glPopMatrix();*/
+
+  testBall.draw();
 }
 
 void drawScene(void) {
   // Clear the rendering window
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  
+
   renderModel();
 
   // Dump the image to the screen.
@@ -141,7 +136,7 @@ void drawScene(void) {
 }
 
 void physicsCycle(int t) {
-  //cout << "frame\n\n";
+  // cout << "frame\n\n";
   testBall.computeNextPos(0.02f);
   glutPostRedisplay();
   glutTimerFunc(refreshTime, physicsCycle, 0);

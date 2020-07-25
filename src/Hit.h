@@ -3,66 +3,45 @@
 
 #include "vecmath.h"
 #include <float.h>
-#include<ostream>
+#include <ostream>
 
-
-class Hit
-{
+class Hit {
 public:
+  // constructors
+  Hit() { t = FLT_MAX; }
 
+  Hit(float _t, const Vector2f &n) {
+    t = _t;
+    normal = n;
+  }
 
-    
-    // constructors
-    Hit()
-    {
-		t = FLT_MAX;
-    }
+  Hit(const Hit &h) {
+    t = h.t;
+    normal = h.normal;
+  }
 
-    Hit( float _t, const Vector2f& n )
-    { 
-        t = _t;
-        normal = n;
-    }
+  // destructor
+  ~Hit() {}
 
-    Hit( const Hit& h )
-    { 
-        t = h.t; 
-        normal = h.normal;
-    }
+  float getT() const { return t; }
 
-    // destructor
-    ~Hit()
-    {
-    
-    }
+  Vector2f getNormal() const { return normal; }
 
-    float getT() const
-    {
-        return t;
-    }
+  void reset() { t = FLT_MAX; }
 
-    Vector2f getNormal() const {
-        return normal;
-    }
+  void set(float _t, const Vector2f &n) {
+    t = _t;
+    normal = n;
+  }
 
-    void reset() { t = FLT_MAX;}
-
-    void set( float _t, const Vector2f& n )
-    {
-        t = _t;
-        normal = n;
-    }
-    
 private:
-	float t;
-    Vector2f normal;
-
+  float t;
+  Vector2f normal;
 };
 
-inline std::ostream& operator << ( std::ostream &os, const Hit& h)
-{
-    os << "Hit <" << h.getT() << ", " << h.getNormal() << ">";
-    return os;
+inline std::ostream &operator<<(std::ostream &os, const Hit &h) {
+  os << "Hit <" << h.getT() << ", " << h.getNormal() << ">";
+  return os;
 }
 
 #endif // HIT_H

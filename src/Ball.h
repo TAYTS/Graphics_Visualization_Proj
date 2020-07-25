@@ -16,6 +16,8 @@ public:
   Ball(float radius);
   Ball(float radius, float COR, Vector3f center);
 
+  ~Ball() {}
+
   void pushTransMatrix(Matrix4f transMat);
 
   bool collide(Ray &r, Hit &h, float radius);
@@ -34,7 +36,6 @@ public:
   Matrix4f globalToObjectTransMatrix = Matrix4f::identity();
   Matrix4f objectToGlobalTransMatrix = Matrix4f::identity();
   const Vector3f GRAVITY = Vector3f(0.0f, -9.81f, 0.0f);
-  float radius;
   float coefficientofRestituition = 1.0f;
   vector<Plane> collidable;
 };
