@@ -14,6 +14,12 @@
 
 #include "Vector3f.h"
 
+#define _ZNEAR 1.0
+#define _ZFAR 100.0
+#define _ROTSCALE 0.5
+#define FOV 60.0
+#define TIME_STEP 1000.0 / 60.0 // 60Hz
+
 class Drawable {
 public:
   virtual void draw() = 0;

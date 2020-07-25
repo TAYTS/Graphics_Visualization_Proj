@@ -16,10 +16,6 @@
 
 using namespace std;
 
-#define _ZNEAR 1.0
-#define _ZFAR 100.0
-#define _ROTSCALE 0.5
-#define FOV 60.0
 
 ////////////////////////////////////
 //        Global Variables        //
@@ -275,7 +271,7 @@ Ball ball(0.4f);
 void updateBallPos(int time) {
   ball.setNewCenter(ball.center + Vector3f(0.0, -0.5f, 0.0f));
   glutPostRedisplay();
-  glutTimerFunc(1000.0 / 60.0, updateBallPos, 0);
+  glutTimerFunc(TIME_STEP, updateBallPos, 0);
 }
 
 int main(int argc, char **argv) {
@@ -306,7 +302,7 @@ int main(int argc, char **argv) {
   glutMouseFunc(mouse);
   glutMotionFunc(motion);
 
-  glutPostRedisplay();
+  glutTimerFunc(TIME_STEP, updateBallPos, 0);
   glutTimerFunc(1000.0 / 60.0, updateBallPos, 0);
 
   // Rendering loop
