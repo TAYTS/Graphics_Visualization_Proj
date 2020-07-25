@@ -16,7 +16,6 @@
 
 using namespace std;
 
-
 ////////////////////////////////////
 //        Global Variables        //
 ////////////////////////////////////
@@ -114,8 +113,8 @@ void initRendering() {
 
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
   // glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseColor);
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseColor);
 
   // 4. Lighting
   glMatrixMode(GL_MODELVIEW);
@@ -266,10 +265,7 @@ void windowSetup(int winWidth, int winHeight, int winPosX, int winPosY, string w
   glutCreateWindow(winName.data());
 }
 
-Ball ball(0.4f);
-
 void updateBallPos(int time) {
-  ball.setNewCenter(ball.center + Vector3f(0.0, -0.5f, 0.0f));
   glutPostRedisplay();
   glutTimerFunc(TIME_STEP, updateBallPos, 0);
 }
@@ -279,7 +275,8 @@ int main(int argc, char **argv) {
 
   // Load object
   Maze maze = Maze("../data/maze_15x15.obj");
-  ball.setNewCenter(Vector3f(maze.getMazeStartPos(), 0.0f));
+  Ball ball(0.5f);
+  ball.pushTransMatrix(Matrix4f::translation(Vector3f(maze.getMazeStartPos(), 0.0f)));
 
   // Stored all objects in screen obj
   screen.addObjNode("maze", &maze);
@@ -303,7 +300,6 @@ int main(int argc, char **argv) {
   glutMotionFunc(motion);
 
   glutTimerFunc(TIME_STEP, updateBallPos, 0);
-  glutTimerFunc(1000.0 / 60.0, updateBallPos, 0);
 
   // Rendering loop
   glutMainLoop();
