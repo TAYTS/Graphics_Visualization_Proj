@@ -1,3 +1,6 @@
+#ifndef BALLDROPTEST_H
+#define BALLDROPTEST_H
+
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #include <OpenGL/OpenGL.h>
@@ -5,15 +8,12 @@
 #include <glut.h>
 #endif
 
+
 #include <vector>
 #include "Physics.h"
 #include "Plane.h"
 #include "Ball.h"
-#include "BallDropTest.h"
 
-using namespace std;
+void BallDropTest(int &argc, char **argv);
 
-int main(int argc, char **argv) {
-  BallDropTest(argc,argv);
-	return 0;
-}
+#endif // BALLDROPTEST_H
