@@ -3,41 +3,35 @@
 
 #include <vector>
 
-#include "Vector3f.h"
-#include "Matrix4f.h"
-#include "Screen.h"
-#include "Physics.h"
 #include "vecmath.h"
-#include "Ray.h"
-#include "Plane.h"
+#include "Maze.h"
 
-class Ball : public Drawable, public Physics {
+class Ball : public Drawable {
 public:
-  Ball(float radius);
-  Ball(float radius, float COR, Vector3f center);
-
-  ~Ball() {}
-
-  void pushTransMatrix(Matrix4f transMat);
-
-  bool collide(Ray &r, Hit &h, float radius);
-
-  void addCollidable(Plane collisionItem) { this->collidable.push_back(collisionItem); }
-
-  void computeNextPos(float intervalTime);
+  Ball(Maze *maze, float radius);
+  Ball(Maze *maze, float radius, float COR, Vector2f center,
+       pair<Vector2f, Vector2f> movementLimit);
 
   // Render the model
   void draw();
 
   // attributes
   float radius;
-  Vector3f center, velocity;
+  float COR; // Coefficient of restituition
+  Vector2f center, velocity, counterVelocity;
   Matrix4f transMat = Matrix4f::identity();
-  Matrix4f globalToObjectTransMatrix = Matrix4f::identity();
-  Matrix4f objectToGlobalTransMatrix = Matrix4f::identity();
-  const Vector3f GRAVITY = Vector3f(0.0f, -9.81f, 0.0f);
-  float coefficientofRestituition = 1.0f;
-  vector<Plane> collidable;
+  Maze *maze;
+  pair<Vector2f, Vector2f> movementLimit;
+
+private:
+  // Compute the ball next position
+  void computeNextPos();
+
+  // Get the matrix to convert the local coordinate system to world coordinate system
+  Matrix4f getObjToWorldMatrix();
+
+  // Get the matrix to convert the world coordinate system to local coordinate system
+  Matrix4f getWorldToObjMatrix();
 };
 
 #endif
