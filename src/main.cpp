@@ -13,6 +13,7 @@
 #include "Maze.h"
 #include "Screen.h"
 #include "Ball.h"
+#include "texture.h"
 
 using namespace std;
 
@@ -274,7 +275,7 @@ int main(int argc, char **argv) {
   glutInit(&argc, argv);
 
   // Load object
-  Maze maze = Maze("../data/maze_15x15.obj");
+  Maze maze = Maze("maze_15x15.obj");
   Ball ball(0.5f);
   ball.pushTransMatrix(Matrix4f::translation(Vector3f(maze.getMazeStartPos(), 0.0f)));
 
@@ -291,6 +292,9 @@ int main(int argc, char **argv) {
 
   // Initialize OpenGL parameters.
   initRendering();
+  maze.floorTex = initTexture("maze_floor.bmp");
+  maze.topTex = initTexture("maze_top.bmp");
+  maze.wallTex = initTexture("maze_wall.bmp");
 
   // Post Event Handlers
   glutReshapeFunc(reshape);
