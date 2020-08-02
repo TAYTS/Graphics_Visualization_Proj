@@ -41,6 +41,7 @@ public:
   std::vector<Vector3f> vectices;
   std::vector<Vector3f> normals;
   std::vector<Face> faces;
+  GLuint topTex, floorTex, wallTex = 0;
 };
 
 #endif
