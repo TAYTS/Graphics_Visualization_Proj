@@ -18,7 +18,8 @@
 #define _ZFAR 100.0
 #define _ROTSCALE 0.5
 #define FOV 60.0
-#define TIME_STEP 1000.0 / 60.0 // 60Hz
+#define REFRESH_RATE 1000.0 / 60.0 // 60Hz
+#define GRAVITY 9.81
 
 class Drawable {
 public:
