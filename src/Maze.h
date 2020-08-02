@@ -49,6 +49,7 @@ public:
   std::vector<Face> faces;
   vector<pair<PlaneIndex, Plane>> posFacingXPlane, negFacingXPlane, posFacingYPlane,
       negFacingYPlane;
+  GLuint topTex, floorTex, wallTex = 0;
 
 private:
   int binarySearchPlane(Ray &ray, vector<pair<PlaneIndex, Plane>> &planeTable, bool xPlane) const;

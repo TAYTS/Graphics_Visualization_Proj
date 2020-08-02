@@ -13,6 +13,7 @@
 #include "Maze.h"
 #include "Screen.h"
 #include "Ball.h"
+#include "texture.h"
 
 using namespace std;
 
@@ -291,6 +292,9 @@ int main(int argc, char **argv) {
 
   // Initialize OpenGL parameters.
   initRendering();
+  maze.floorTex = initTexture("maze_floor.bmp");
+  maze.topTex = initTexture("maze_top.bmp");
+  maze.wallTex = initTexture("maze_wall.bmp");
 
   // Post Event Handlers
   glutReshapeFunc(reshape);
