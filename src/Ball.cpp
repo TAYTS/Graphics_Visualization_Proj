@@ -7,6 +7,9 @@
 
 using namespace std;
 
+////////////////////////////////////
+//           Constructor          //
+////////////////////////////////////
 Ball::Ball(Maze *maze, float radius) {
   this->maze = maze;
   this->radius = radius;
@@ -27,6 +30,9 @@ Ball::Ball(Maze *maze, float radius, float COR, Vector2f center,
   this->movementLimit = movementLimit;
 };
 
+////////////////////////////////////
+//         Public Methods         //
+////////////////////////////////////
 void Ball::draw() {
   // Store the old rendering settings
   glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -49,69 +55,6 @@ void Ball::draw() {
   this->computeNextPos();
 }
 
-// void Ball::computeNextPos(float intervalTime) {
-//   Vector3f accDir = (this->globalToObjectTransMatrix * Vector4f(0.0f, -1.0f, 0.0f, 0.0f)).xyz();
-//   Vector2f acc = this->getGravity() * accDir.normalized().xy();
-//   Vector2f dir = intervalTime * this->velocity.xy() + 0.5 * intervalTime * intervalTime * acc;
-//   Ray ballPath(this->center.xy(), dir);
-//   Hit pathHit;
-//   do {
-//     bool collide = false;
-//     for (int i = 0; i < this->collidable.size(); i++) {
-//       collide = collide || this->collidable[i].collide(ballPath, pathHit, this->radius);
-//     }
-//     if (collide && pathHit.getT() < 1) {
-//       Vector2f dist = dir * pathHit.getT();
-//       this->center += Vector3f(dist, 0.0f);
-//       Vector2f determinant =
-//           (this->velocity * this->velocity + Vector3f(2 * acc * dist, 0.0f)).xy();
-//       int temp = abs(acc[0]) == 0.0f ? 1 : 0;
-//       float timeTaken1 = 0 - pow(determinant[temp], 0.5) - velocity[temp];
-//       timeTaken1 = timeTaken1 / acc[temp];
-//       float timeTaken2 = pow(determinant[temp], 0.5) - velocity[temp];
-//       timeTaken2 = timeTaken2 / acc[temp];
-//       float timeTaken = timeTaken1;
-//       if (timeTaken1 < 0.0f) {
-//         timeTaken = timeTaken2;
-//       } else if (timeTaken2 < timeTaken1 && timeTaken2 >= 0.0f) {
-//         timeTaken = timeTaken2;
-//       }
-//       this->velocity = this->velocity + Vector3f(acc * timeTaken, 0.0f);
-//       float speed = this->velocity.abs();
-//       this->velocity.negate();
-//       // this->velocity.print();
-//       this->velocity.normalize();
-//       this->velocity =
-//           2 * pathHit.getNormal() * Vector2f::dot(pathHit.getNormal(), this->velocity.xy()) -
-//           this->velocity;
-//       // this->velocity.print();
-//       this->velocity *= this->coefficientofRestituition * speed;
-//       // this->velocity.print();
-//       if (dist.abs() < 1e-21 && speed < 1e-21) {
-//         dir = Vector2f::ZERO;
-//         acc = Vector2f::ZERO;
-//         this->velocity = Vector3f::ZERO;
-//         break;
-//       }
-//       intervalTime -= timeTaken;
-//       pathHit.reset();
-//       dir = this->velocity.xy() * intervalTime + 0.5 * acc * intervalTime * intervalTime;
-//       Vector2f tempCenter = this->center.xy();
-//       ballPath.set(tempCenter, dir);
-//     } else {
-//       break;
-//     }
-//     // cout <<"interavalTime:"<< intervalTime<<"\n";
-//   } while (intervalTime > 0.0f);
-//   this->center += Vector3f(dir, 0.0f);
-//   this->velocity += Vector3f(acc * intervalTime, 0.0f);
-// }
-
-Vector2f clamp1(Vector2f value, Vector2f minVec, Vector2f maxVec) {
-  return Vector2f(max(minVec.x(), min(maxVec.x(), value.x())),
-                  max(minVec.y(), min(maxVec.y(), value.y())));
-}
-
 vector<Vector2f> getNormalDirectionFromVelocity(Vector2f *velocity) {
   vector<Vector2f> directions;
 
@@ -130,6 +73,9 @@ vector<Vector2f> getNormalDirectionFromVelocity(Vector2f *velocity) {
   return directions;
 }
 
+////////////////////////////////////
+//        Private Methods         //
+////////////////////////////////////
 void Ball::computeNextPos() {
   Matrix4f objToWorldMatrix = this->getObjToWorldMatrix();
   Matrix4f worldToObjMatrix = this->getWorldToObjMatrix();
@@ -179,19 +125,14 @@ void Ball::computeNextPos() {
 
   // Check the magnitude of the displacement, if the displacement too large use distance step
   if (abs(totalDisplacement.x()) >= this->radius || abs(totalDisplacement.y()) >= this->radius) {
-    cout << "Total Displacement: ";
-    totalDisplacement.print();
-    cout << "Original Center: ";
-    this->center.print();
-
-    float xStep = 0.0f, yStep = 0.0f;
+    float xStep = 0.0f, yStep = 0.0f, stepSize = 0.02f;
     Vector2f tempCenter = this->center;
 
     if (abs(totalDisplacement.x()) >= this->radius) {
       if (totalDisplacement.x() > 0.0000001f) {
-        xStep = 0.01f;
+        xStep = stepSize;
       } else if (totalDisplacement.x() < -0.0000001f) {
-        xStep = -0.01f;
+        xStep = -stepSize;
       }
     } else {
       tempCenter.x() += totalDisplacement.x();
@@ -199,9 +140,9 @@ void Ball::computeNextPos() {
 
     if (abs(totalDisplacement.y()) >= this->radius) {
       if (totalDisplacement.y() > 0.0000001f) {
-        yStep = 0.01f;
+        yStep = stepSize;
       } else if (totalDisplacement.y() < -0.0000001f) {
-        yStep = -0.01f;
+        yStep = -stepSize;
       }
     } else {
       tempCenter.y() += totalDisplacement.y();
@@ -215,33 +156,22 @@ void Ball::computeNextPos() {
             (xStep < 0.0f && tempCenter.x() > newCenter.x())) &&
            (yStep == 0.0f || (yStep > 0.0f && tempCenter.y() < newCenter.y()) ||
             (yStep < 0.0f && tempCenter.y() > newCenter.y()))) {
-      cout << "Temp Center Before: ";
-      tempCenter.print();
-
       collide = this->updateVelocityAndPositionIfCollide(newVelocity, tempCenter);
-      cout << "Temp Center After: ";
-      tempCenter.print();
 
-      cout << "collide: " << collide << endl;
       if (collide) {
         break;
       }
 
       if ((xStep > 0.0f && tempCenter.x() < newCenter.x()) ||
           (xStep < 0.0f && tempCenter.x() > newCenter.x())) {
-        cout << "Increment X step" << endl;
         tempCenter.x() += xStep;
       }
 
       if ((yStep > 0.0f && tempCenter.y() < newCenter.y()) ||
           (yStep < 0.0f && tempCenter.y() > newCenter.y())) {
-        cout << "Increment Y step" << endl;
         tempCenter.y() += yStep;
       }
     }
-
-    cout << "new center: ";
-    tempCenter.print();
 
     // Replace the newCenter with the updated center
     newCenter = tempCenter;
@@ -251,21 +181,6 @@ void Ball::computeNextPos() {
 
   this->velocity = newVelocity;
   this->center = newCenter;
-  /* Rendering vector */
-  // glPushAttrib(GL_ALL_ATTRIB_BITS);
-  // glDisable(GL_LIGHTING);
-  // glLineWidth(5);
-
-  // glPushMatrix();
-
-  // glBegin(GL_LINES);
-  // glColor4f(0, 1, 0, 0);
-  // glVertex3fv(Vector3f(this->center, this->radius));
-  // glVertex3fv(Vector3f(this->center + this->velocity, this->radius));
-  // glEnd();
-
-  // glPopMatrix();
-  // glPopAttrib();
 }
 
 bool Ball::updateVelocityAndPositionIfCollide(Vector2f &velocity, Vector2f &center) {

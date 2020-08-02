@@ -27,6 +27,7 @@ private:
   // Compute the ball next position
   void computeNextPos();
 
+  // Update the given velocity and position if it collide with any plane
   bool updateVelocityAndPositionIfCollide(Vector2f &velocity, Vector2f &center);
 
   // Get the matrix to convert the local coordinate system to world coordinate system
