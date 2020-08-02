@@ -77,7 +77,7 @@ void resetProjectionView() {
 }
 
 void reshape(int w, int h) {
-  glViewport(0, 0, w * 2, h * 2);
+  glViewport(0, 0, w, h);
   resetProjectionView();
 }
 

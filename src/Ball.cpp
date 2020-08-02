@@ -112,6 +112,24 @@ Vector2f clamp1(Vector2f value, Vector2f minVec, Vector2f maxVec) {
                   max(minVec.y(), min(maxVec.y(), value.y())));
 }
 
+vector<Vector2f> getNormalDirectionFromVelocity(Vector2f *velocity) {
+  vector<Vector2f> directions;
+
+  if (velocity->x() > 0.0000001f) {
+    directions.push_back(Vector2f(1.0f, 0.0f));
+  } else if (velocity->x() < -0.0000001f) {
+    directions.push_back(Vector2f(-1.0f, 0.0f));
+  }
+
+  if (velocity->y() > 0.0000001f) {
+    directions.push_back(Vector2f(0.0f, 1.0f));
+  } else if (velocity->y() < -0.0000001f) {
+    directions.push_back(Vector2f(0.0f, -1.0f));
+  }
+
+  return directions;
+}
+
 void Ball::computeNextPos() {
   Matrix4f objToWorldMatrix = this->getObjToWorldMatrix();
   Matrix4f worldToObjMatrix = this->getWorldToObjMatrix();
@@ -123,7 +141,6 @@ void Ball::computeNextPos() {
   // Maze normal in world coordinate system
   Vector3f mazeNormal = (objToWorldMatrix * Vector4f(-Vector3f::FORWARD, 0.0f)).xyz().normalized();
 
-  // do {
   // Compute the projected gravity vector in world coordinate system
   Vector3f projGravityVec = gravityAccel - (Vector3f::dot(gravityAccel, mazeNormal)) * mazeNormal;
   // Convert the projected gravity vector to local coordinate system
@@ -136,19 +153,18 @@ void Ball::computeNextPos() {
   } else {
     // friction
     if (newVelocity.x() != 0) {
-      newVelocity -= Vector2f(newVelocity.x() * 0.15f, 0.0f);
+      newVelocity -= Vector2f(newVelocity.x() * 0.08f, 0.0f);
     }
     if (newVelocity.y() != 0) {
-      newVelocity -= Vector2f(0.0f, newVelocity.y() * 0.15f);
+      newVelocity -= Vector2f(0.0f, newVelocity.y() * 0.08f);
     }
   }
 
   // formula: delta_distance = 0.5 * (v1 + v0) * time_delta
   Vector2f totalDisplacement = 0.5 * (this->velocity + newVelocity) * timestep;
-  Vector2f displacement = Vector2f::ZERO;
   Vector2f newCenter = this->center + totalDisplacement;
 
-  // check if the new center exit the maze boundary
+  // Check if the new center exit the maze boundary
   if (newCenter.y() + this->radius >= this->movementLimit.first.y()) {
     newVelocity = (newVelocity * this->COR);
     this->velocity = Vector2f(newVelocity.x(), newVelocity.y() * -1.0f);
@@ -161,67 +177,76 @@ void Ball::computeNextPos() {
     return;
   }
 
-  vector<Vector2f> dirs = {
-      Vector2f(0.0f, 1.0f),
-      Vector2f(0.0f, -1.0f),
-      Vector2f(-1.0f, 0.0f),
-      Vector2f(1.0f, 0.0f),
-  };
+  // Check the magnitude of the displacement, if the displacement too large use distance step
+  if (abs(totalDisplacement.x()) >= this->radius || abs(totalDisplacement.y()) >= this->radius) {
+    cout << "Total Displacement: ";
+    totalDisplacement.print();
+    cout << "Original Center: ";
+    this->center.print();
 
-  for (auto dir : dirs) {
-    Ray ballDirection = Ray(newCenter, dir, this->radius);
+    float xStep = 0.0f, yStep = 0.0f;
+    Vector2f tempCenter = this->center;
 
-    vector<pair<PlaneIndex, Plane> *> potentialCollidePlane =
-        this->maze->getPotentialCollidePlanePair(ballDirection);
+    if (abs(totalDisplacement.x()) >= this->radius) {
+      if (totalDisplacement.x() > 0.0000001f) {
+        xStep = 0.01f;
+      } else if (totalDisplacement.x() < -0.0000001f) {
+        xStep = -0.01f;
+      }
+    } else {
+      tempCenter.x() += totalDisplacement.x();
+    }
 
-    if (potentialCollidePlane.size() > 0) {
-      for (auto planePair : potentialCollidePlane) {
-        Vector2f halfExtend =
-            Vector2f(planePair->second.getSizeX() / 2.0f, planePair->second.getSizeY() / 2.0f);
-        Vector2f difference1 = newCenter - planePair->second.center;
-        Vector2f clamped = clamp1(difference1, -halfExtend, halfExtend);
-        Vector2f closest = planePair->second.center + clamped;
-        difference1 = closest - newCenter;
+    if (abs(totalDisplacement.y()) >= this->radius) {
+      if (totalDisplacement.y() > 0.0000001f) {
+        yStep = 0.01f;
+      } else if (totalDisplacement.y() < -0.0000001f) {
+        yStep = -0.01f;
+      }
+    } else {
+      tempCenter.y() += totalDisplacement.y();
+    }
 
-        Vector2f difference = Vector2f::ZERO;
-        collide = planePair->second.collide(&ballDirection, difference);
+    tempCenter += Vector2f(xStep, yStep);
 
-        if (collide) {
-          if (planePair->second.normal.x() != 0.0f) { // Y plane
-            float penetration = this->radius - abs(difference.x());
-            penetration = floor(penetration * 1000000.0f) / 1000000.0f;
+    bool collide = false;
 
-            // flip the vector direction
-            if ((planePair->second.normal.x() > 0 && newVelocity.x() < 0) ||
-                (planePair->second.normal.x() < 0 && newVelocity.x() > 0)) {
-              newVelocity.x() *= (-1.0f * this->COR);
-            }
-            if (planePair->second.normal.x() > 0.0f) {
-              newCenter.x() += penetration;
-            } else {
-              newCenter.x() -= penetration;
-            }
-          } else { // X plane
-            float penetration = this->radius - abs(difference.y());
-            penetration = floor(penetration * 1000000.0f) / 1000000.0f;
+    while ((xStep == 0.0f || (xStep > 0.0f && tempCenter.x() < newCenter.x()) ||
+            (xStep < 0.0f && tempCenter.x() > newCenter.x())) &&
+           (yStep == 0.0f || (yStep > 0.0f && tempCenter.y() < newCenter.y()) ||
+            (yStep < 0.0f && tempCenter.y() > newCenter.y()))) {
+      cout << "Temp Center Before: ";
+      tempCenter.print();
 
-            if ((planePair->second.normal.y() > 0 && newVelocity.y() < 0) ||
-                (planePair->second.normal.y() < 0 && newVelocity.y() > 0)) {
-              newVelocity.y() *= (-1.0f * this->COR);
-            }
+      collide = this->updateVelocityAndPositionIfCollide(newVelocity, tempCenter);
+      cout << "Temp Center After: ";
+      tempCenter.print();
 
-            if (planePair->second.normal.y() > 0.0f) {
-              newCenter.y() += penetration;
-            } else {
-              newCenter.y() -= penetration;
-            }
-          }
-        }
+      cout << "collide: " << collide << endl;
+      if (collide) {
+        break;
+      }
+
+      if ((xStep > 0.0f && tempCenter.x() < newCenter.x()) ||
+          (xStep < 0.0f && tempCenter.x() > newCenter.x())) {
+        cout << "Increment X step" << endl;
+        tempCenter.x() += xStep;
+      }
+
+      if ((yStep > 0.0f && tempCenter.y() < newCenter.y()) ||
+          (yStep < 0.0f && tempCenter.y() > newCenter.y())) {
+        cout << "Increment Y step" << endl;
+        tempCenter.y() += yStep;
       }
     }
-    if (collide) {
-      break;
-    }
+
+    cout << "new center: ";
+    tempCenter.print();
+
+    // Replace the newCenter with the updated center
+    newCenter = tempCenter;
+  } else {
+    this->updateVelocityAndPositionIfCollide(newVelocity, newCenter);
   }
 
   this->velocity = newVelocity;
@@ -241,6 +266,63 @@ void Ball::computeNextPos() {
 
   // glPopMatrix();
   // glPopAttrib();
+}
+
+bool Ball::updateVelocityAndPositionIfCollide(Vector2f &velocity, Vector2f &center) {
+  bool collide = false;
+  // Get the directions in the major axis based on the velocity vector
+  vector<Vector2f> dirs = getNormalDirectionFromVelocity(&velocity);
+
+  for (auto dir : dirs) {
+    Ray ballDirection = Ray(center, dir, this->radius);
+
+    vector<pair<PlaneIndex, Plane> *> potentialCollidePlane =
+        this->maze->getPotentialCollidePlanePair(ballDirection);
+
+    if (potentialCollidePlane.size() > 0) {
+      for (auto planePair : potentialCollidePlane) {
+        Vector2f difference = Vector2f::ZERO;
+        collide = planePair->second.collide(&ballDirection, difference);
+
+        if (collide) {
+          if (planePair->second.normal.x() != 0.0f) { // Y plane
+            float penetration = this->radius - abs(difference.x());
+            penetration = floor(penetration * 1000000.0f) / 1000000.0f;
+
+            // flip the vector direction
+            if ((planePair->second.normal.x() > 0 && velocity.x() < 0) ||
+                (planePair->second.normal.x() < 0 && velocity.x() > 0)) {
+              velocity.x() *= (-1.0f * this->COR);
+            }
+            if (planePair->second.normal.x() > 0.0f) {
+              center.x() += penetration;
+            } else {
+              center.x() -= penetration;
+            }
+          } else { // X plane
+            float penetration = this->radius - abs(difference.y());
+            penetration = floor(penetration * 1000000.0f) / 1000000.0f;
+
+            if ((planePair->second.normal.y() > 0 && velocity.y() < 0) ||
+                (planePair->second.normal.y() < 0 && velocity.y() > 0)) {
+              velocity.y() *= (-1.0f * this->COR);
+            }
+
+            if (planePair->second.normal.y() > 0.0f) {
+              center.y() += penetration;
+            } else {
+              center.y() -= penetration;
+            }
+          }
+        }
+      }
+    }
+    if (collide) {
+      return collide;
+    }
+  }
+
+  return collide;
 }
 
 Matrix4f Ball::getObjToWorldMatrix() {
