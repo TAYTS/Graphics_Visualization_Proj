@@ -6,10 +6,13 @@
 #include "Vector2f.h"
 #include "Vector3f.h"
 #include "Screen.h"
+#include "Plane.h"
 
 struct Face {
   const unsigned int v1, v2, v3, n1, n2, n3;
 };
+
+typedef std::map<PlaneIndex, Plane> PlaneMap;
 
 class Maze : public Drawable {
 public:
@@ -35,12 +38,20 @@ public:
   // Get the maze ending (edge) position
   Vector2f getMazeEndPos();
 
+  // Get all the planes that will collide with the given Ray
+  vector<pair<PlaneIndex, Plane> *> getPotentialCollidePlanePair(Ray &ray);
+
   // attributes
   float minX = 0.0f, minY = 0.0f, minZ = 0.0f;
   float maxX = 0.0f, maxY = 0.0f, maxZ = 0.0f;
   std::vector<Vector3f> vectices;
   std::vector<Vector3f> normals;
   std::vector<Face> faces;
+  vector<pair<PlaneIndex, Plane>> posFacingXPlane, negFacingXPlane, posFacingYPlane,
+      negFacingYPlane;
+
+private:
+  int binarySearchPlane(Ray &ray, vector<pair<PlaneIndex, Plane>> &planeTable, bool xPlane) const;
 };
 
 #endif
