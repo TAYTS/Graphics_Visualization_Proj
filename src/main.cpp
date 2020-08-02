@@ -267,7 +267,7 @@ void windowSetup(int winWidth, int winHeight, int winPosX, int winPosY, string w
 
 void updateBallPos(int time) {
   glutPostRedisplay();
-  glutTimerFunc(TIME_STEP, updateBallPos, 0);
+  glutTimerFunc(REFRESH_RATE, updateBallPos, 0);
 }
 
 int main(int argc, char **argv) {
@@ -275,8 +275,8 @@ int main(int argc, char **argv) {
 
   // Load object
   Maze maze = Maze("../data/maze_15x15.obj");
-  Ball ball(0.5f);
-  ball.pushTransMatrix(Matrix4f::translation(Vector3f(maze.getMazeStartPos(), 0.0f)));
+  Ball ball(&maze, 0.3f, 0.8f, maze.getMazeStartPos() - Vector2f(0.0f, 0.4f),
+            pair<Vector2f, Vector2f>(maze.getMazeStartPos(), maze.getMazeEndPos()));
 
   // Stored all objects in screen obj
   screen.addObjNode("maze", &maze);
@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
   // Setup the display window
   int winWidth, windHeight, winPosX, winPosY;
   winWidth = windHeight = 800;
-  winPosX = winPosY = 100;
+  winPosX = winPosY = 500;
   string winName = "Maze Game";
   windowSetup(winWidth, windHeight, winPosX, winPosY, winName);
 
@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
   glutMouseFunc(mouse);
   glutMotionFunc(motion);
 
-  glutTimerFunc(TIME_STEP, updateBallPos, 0);
+  glutTimerFunc(REFRESH_RATE, updateBallPos, 0);
 
   // Rendering loop
   glutMainLoop();
