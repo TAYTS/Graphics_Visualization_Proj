@@ -20,7 +20,7 @@ public:
 
 private:
   Vector2f origin;
-  Vector2f direction;
+  Vector2f direction; // Normalized vector
   float distance;
 };
 

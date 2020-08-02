@@ -2,19 +2,19 @@
 
 Ray::Ray(const Vector2f &origin, const Vector2f &direction, const float distance) {
   this->origin = origin;
-  this->direction = direction;
+  this->direction = direction.normalized();
   this->distance = distance;
 }
 
 Ray::Ray(const Ray &r) {
   this->origin = r.origin;
-  this->direction = r.direction;
+  this->direction = r.direction.normalized();
   this->distance = r.distance;
 }
 
 void Ray::set(Vector2f &origin, Vector2f &direction, float distance) {
   this->origin = origin;
-  this->direction = direction;
+  this->direction = direction.normalized();
   this->distance = distance;
 }
 
