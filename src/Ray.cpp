@@ -22,4 +22,6 @@ const Vector2f &Ray::getOrigin() const { return this->origin; }
 
 const Vector2f &Ray::getDirection() const { return this->direction; }
 
+const float &Ray::getDistance() const { return this->distance; }
+
 Vector2f Ray::getEndpoint() const { return this->origin + this->direction * this->distance; }

@@ -16,6 +16,8 @@ public:
 
   const Vector2f &getDirection() const;
 
+  const float &getDistance() const;
+
   Vector2f getEndpoint() const;
 
 private:
