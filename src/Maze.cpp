@@ -11,6 +11,8 @@
 
 #include "Maze.h"
 
+#define TEX_SCALE_FACTOR 5 //used to scale number of texture units per unit maze length for width and height
+
 using namespace std;
 
 Maze::Maze() {}
@@ -86,25 +88,133 @@ void Maze::loadObj(string objFilePath) {
     cerr << "Invalid file" << endl;
     exit(1);
   }
+
 }
 
 void Maze::draw() {
-  glBegin(GL_TRIANGLES);
+  // enable texturing
+  glEnable(GL_TEXTURE_2D);
+  
   for (auto face : this->faces) {
-    glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
-               this->normals.at(face.n1 - 1)[2]);
-    glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
-               this->vectices.at(face.v1 - 1)[2]);
-    glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
-               this->normals.at(face.n2 - 1)[2]);
-    glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
-               this->vectices.at(face.v2 - 1)[2]);
-    glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
-               this->normals.at(face.n3 - 1)[2]);
-    glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
-               this->vectices.at(face.v3 - 1)[2]);
+    if ((this->normals.at(face.n1 - 1)[2] + this->normals.at(face.n2 - 1)[2] +
+        this->normals.at(face.n3 - 1)[2])/3 > 0.5f) {
+        // check if face is facing +z, towards player
+
+        if (this->vectices.at(face.v1 - 1)[2] <= 0.2f &&
+            this->vectices.at(face.v2 - 1)[2] <= 0.2f &&
+            this->vectices.at(face.v3 - 1)[2] <= 0.2f) {
+          // applies floor texture to faces that are the floor
+          glBindTexture(GL_TEXTURE_2D, floorTex);
+          glBegin(GL_TRIANGLES);
+          glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v1 - 1)[0] - minX) * TEX_SCALE_FACTOR /
+                               (maxX - minX),
+                       0 + 0.5 * (this->vectices.at(face.v1 - 1)[1] - minY) * TEX_SCALE_FACTOR /
+                               (maxY - minY));
+          glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
+                     this->normals.at(face.n1 - 1)[2]);
+          glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
+                     this->vectices.at(face.v1 - 1)[2]);
+          glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v2 - 1)[0] - minX) * TEX_SCALE_FACTOR /
+                               (maxX - minX),
+                       0 + 0.5 * (this->vectices.at(face.v2 - 1)[1] - minY) * TEX_SCALE_FACTOR /
+                               (maxY - minY));
+          glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
+                     this->normals.at(face.n2 - 1)[2]);
+          glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
+                     this->vectices.at(face.v2 - 1)[2]);
+          glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v3 - 1)[0] - minX) * TEX_SCALE_FACTOR /
+                               (maxX - minX),
+                       0 + 0.5 * (this->vectices.at(face.v3 - 1)[1] - minY) * TEX_SCALE_FACTOR /
+                               (maxY - minY));
+          glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
+                     this->normals.at(face.n3 - 1)[2]);
+          glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
+                     this->vectices.at(face.v3 - 1)[2]);
+          glEnd();
+        } else {
+          // applies texture to faces that are on the top of the maze
+          glBindTexture(GL_TEXTURE_2D, topTex);
+          glBegin(GL_TRIANGLES);
+          glTexCoord2d(0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[0] - minX) * TEX_SCALE_FACTOR /
+                                 (maxX - minX),
+                       0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[1] - minY) * TEX_SCALE_FACTOR /
+                                 (maxY - minY));
+          glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
+                     this->normals.at(face.n1 - 1)[2]);
+          glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
+                     this->vectices.at(face.v1 - 1)[2]);
+          glTexCoord2d(0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[0] - minX) * TEX_SCALE_FACTOR /
+                                 (maxX - minX),
+                       0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[1] - minY) * TEX_SCALE_FACTOR /
+                                 (maxY - minY));
+          glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
+                     this->normals.at(face.n2 - 1)[2]);
+          glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
+                     this->vectices.at(face.v2 - 1)[2]);
+          glTexCoord2d(0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[0] - minX) * TEX_SCALE_FACTOR /
+                                 (maxX - minX),
+                       0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[1] - minY) * TEX_SCALE_FACTOR /
+                                 (maxY - minY));
+          glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
+                     this->normals.at(face.n3 - 1)[2]);
+          glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
+                     this->vectices.at(face.v3 - 1)[2]);
+          glEnd();
+        }
+    } else if(fabs(this->normals.at(face.n1 - 1)[1] + this->normals.at(face.n2 - 1)[1] +
+        this->normals.at(face.n3 - 1)[1]) >0.5f){
+      // checks that face is facing +y or -y direction and applies wall texture, mapped to the x coordinates
+
+      glBindTexture(GL_TEXTURE_2D, wallTex);
+      glBegin(GL_TRIANGLES);
+      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v1 - 1)[0] - minX) / (maxZ),
+                   0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[2] ) / (maxZ ));
+      glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
+                 this->normals.at(face.n1 - 1)[2]);
+      glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
+                 this->vectices.at(face.v1 - 1)[2]);
+      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v2 - 1)[0] - minX) / (maxZ),
+                   0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[2] ) / (maxZ));
+      glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
+                 this->normals.at(face.n2 - 1)[2]);
+      glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
+                 this->vectices.at(face.v2 - 1)[2]);
+      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v3 - 1)[0] - minX) / (maxZ),
+                   0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[2] ) / (maxZ));
+      glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
+                 this->normals.at(face.n3 - 1)[2]);
+      glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
+                 this->vectices.at(face.v3 - 1)[2]);
+      glEnd();
+    } else {
+      // else the face is facing +y or -y and applies wall texture, mapped to the y coordinates
+      glBindTexture(GL_TEXTURE_2D, wallTex);
+      glBegin(GL_TRIANGLES);
+      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v1 - 1)[1] - minY) / (maxZ),
+                   0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[2]) / (maxZ));
+      glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
+                 this->normals.at(face.n1 - 1)[2]);
+      glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
+                 this->vectices.at(face.v1 - 1)[2]);
+      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v2 - 1)[1] - minY) / (maxZ),
+                   0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[2]) / (maxZ));
+      glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
+                 this->normals.at(face.n2 - 1)[2]);
+      glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
+                 this->vectices.at(face.v2 - 1)[2]);
+      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v3 - 1)[1] - minY) / (maxZ),
+                   0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[2]) / (maxZ));
+      glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
+                 this->normals.at(face.n3 - 1)[2]);
+      glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
+                 this->vectices.at(face.v3 - 1)[2]);
+      glEnd();
+    }
   }
-  glEnd();
+  
+
+  glDisable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, 0);
 };
 
 float Maze::getSizeX() { return this->maxX - this->minX; }
