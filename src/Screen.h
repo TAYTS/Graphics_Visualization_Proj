@@ -6,6 +6,7 @@
 #include <OpenGL/OpenGL.h>
 #elif defined _WIN32 || defined _WIN64
 #include <glut.h>
+#define GL_CLAMP_TO_EDGE 0x812F
 #endif
 
 #include <string>

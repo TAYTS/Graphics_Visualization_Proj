@@ -1,15 +1,9 @@
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#include <OpenGL/OpenGL.h>
-#elif defined _WIN32 || defined _WIN64
-#include <glut.h>
-#define GL_CLAMP_TO_EDGE 0x812F
-#endif
-
 #include <iostream>
 #include <fstream>
-#include <math.h>
 #include <vector>
+#include <string.h>
+
+#include "Screen.h"
 
 using namespace std;
 
@@ -23,20 +17,25 @@ using namespace std;
 
 GLubyte *readBmpTex(string bmpFile) {
   // reads a bitmap file with 8 bit per colour as texture data
-  //bitmap size is controlled by IMG_WIDTH and IMG_HEIGHT, which must be a power of 2 e.g. 32,64,128,256
+  // bitmap size is controlled by IMG_WIDTH and IMG_HEIGHT, which must be a power of 2 e.g.
+  // 32,64,128,256
   ifstream texFile;
-  uint32_t fileDataOffset=0;
+  uint32_t fileDataOffset = 0;
 
-  texFile.open(bmpFile, ios_base::binary);
-  char input[2];
-  texFile.read(input, 2);
-  if (strcmp(input,"BM")==0) {
+  texFile.open(bmpFile, ios::binary);
+
+  char input[3];
+  texFile.read(input, 3);
+  input[2] = '\0';
+
+  if (strcmp(input, "BM") != 0) {
     cerr << "texture file is not of supported file format";
     string temp;
     cin >> temp;
     exit(2);
   }
-char inputByte;
+
+  char inputByte;
   texFile.seekg(0x0A);
   texFile.get(inputByte);
   fileDataOffset += (unsigned char)inputByte;
@@ -49,7 +48,7 @@ char inputByte;
 
   texFile.seekg(0x12);
   texFile.get(inputByte);
-  uint32_t  texWidth = (unsigned char)inputByte;
+  uint32_t texWidth = (unsigned char)inputByte;
   texFile.get(inputByte);
   texWidth += (uint32_t)((unsigned char)inputByte) << 8;
   texFile.get(inputByte);
@@ -67,8 +66,8 @@ char inputByte;
   texHeight += (uint32_t)((unsigned char)inputByte) << 24;
 
   if (texWidth != IMG_WIDTH || texHeight != IMG_HEIGHT) {
-    cout << dec<<"width: " << texWidth<<"\n";
-    cout << "height: " << texHeight <<"\n";
+    cout << dec << "width: " << texWidth << "\n";
+    cout << "height: " << texHeight << "\n";
     cerr << "texture file is not " << IMG_WIDTH << " bit by " << IMG_HEIGHT
          << " bit, please modify\n";
     string temp;
@@ -83,7 +82,7 @@ char inputByte;
   bitPerPixel += (uint32_t)((unsigned char)inputByte) << 8;
 
   if (bitPerPixel != 24) {
-    cout << "detected bit per pixel: "<<dec<<bitPerPixel<<"\n";
+    cout << "detected bit per pixel: " << dec << bitPerPixel << "\n";
     cerr << "texture file is not 8 bit per color, please modify";
     string temp;
     cin >> temp;
@@ -103,6 +102,7 @@ char inputByte;
       imgTexture[i][j][0] = (unsigned char)col;
     }
   }
+  texFile.close();
   return reinterpret_cast<GLubyte *>(imgTexture);
 }
 
@@ -124,7 +124,7 @@ GLuint initTexture(string bmpFile) {
   return texInt;
 }
 
-void finishTexture(int texCount, GLuint* texObj) {
+void finishTexture(int texCount, GLuint *texObj) {
   /* disable texturing and unbind texture */
   glDisable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -139,7 +139,7 @@ void finishTexture(GLuint texObj) {
 }
 
 void DrawTextureQuad(GLuint texObj) {
-    // used to check proper loading of texture
+  // used to check proper loading of texture
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, texObj);
 
