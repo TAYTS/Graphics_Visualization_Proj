@@ -64,7 +64,10 @@ Vector2f Vector2f::yy() const { return Vector2f(m_elements[1], m_elements[1]); }
 
 Vector2f Vector2f::normal() const { return Vector2f(-m_elements[1], m_elements[0]); }
 
-float Vector2f::abs() const { return sqrt(absSquared()); }
+float Vector2f::abs() const {
+  float result = sqrt(absSquared());
+  return result < 0.0000001f ? 0.0f : result;
+}
 
 float Vector2f::absSquared() const {
   return m_elements[0] * m_elements[0] + m_elements[1] * m_elements[1];
@@ -72,12 +75,16 @@ float Vector2f::absSquared() const {
 
 void Vector2f::normalize() {
   float norm = abs();
+  if (norm == 0.0f)
+    return;
   m_elements[0] /= norm;
   m_elements[1] /= norm;
 }
 
 Vector2f Vector2f::normalized() const {
   float norm = abs();
+  if (norm == 0.0f)
+    return Vector2f::ZERO;
   return Vector2f(m_elements[0] / norm, m_elements[1] / norm);
 }
 
