@@ -40,7 +40,7 @@ public:
   // Mouse interaction attributes
   GLint mouseModifiers = 0;
   GLint mouseButton = 0;
-  int prevMouseX, prevMouseY;
+  int prevMouseX = 0, prevMouseY = 0;
 
   // attributes
   ObjMap childNodes;
