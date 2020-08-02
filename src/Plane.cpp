@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdlib>
 
 #include "Plane.h"
 
@@ -22,39 +23,48 @@ Plane::Plane(const float startPos, const float endPos, const float planePos,
     exit(1);
   }
 
-  bool xPlane = this->normal.x() != 0 ? true : false;
-  if (xPlane) {
+  bool yPlane = this->normal.x() != 0 ? true : false;
+  if (yPlane) {
     this->yMin = startPos;
     this->yMax = endPos;
     this->xMin = this->xMax = planePos;
+    this->center = Vector2f(planePos, startPos + (endPos - startPos) / 2.0f);
   } else {
     this->xMin = startPos;
     this->xMax = endPos;
     this->yMin = this->yMax = planePos;
+    this->center = Vector2f(startPos + (endPos - startPos) / 2.0f, planePos);
+  }
+  this->planePos = planePos;
+}
+
+float Plane::getSizeX() {
+  if (this->normal.x() != 0) { // Y plane
+    return 0.0f;
+  } else { // X plane
+    return abs(this->xMax - this->xMin);
   }
 }
 
-bool Plane::collide(Ray incomingRay) {
-  // Only consider incoming ray that is in the opposite direction
-  // of the plane normal
-  if ((this->normal.x() > 0.0f && incomingRay.getDirection().x() > 0.0f) ||
-      (this->normal.x() < 0.0f && incomingRay.getDirection().x() < 0.0f) ||
-      (this->normal.y() > 0.0f && incomingRay.getDirection().y() > 0.0f) ||
-      (this->normal.y() < 0.0f && incomingRay.getDirection().y() < 0.0f)) {
-    return false;
+float Plane::getSizeY() {
+  if (this->normal.x() != 0) { // Y plane
+    return abs(this->yMax - this->yMin);
+  } else { // X plane
+    return 0.0f;
   }
+}
 
-  Vector2f origin = incomingRay.getOrigin();
-  Vector2f finalPosition = incomingRay.getEndpoint();
-  // check if the incoming ray cross the plane and its
-  // final position is within the plane range
-  if (this->normal.x() != 0.0f) { // y-plane
-    return finalPosition.x() <= this->xMin <= origin.x() && finalPosition.y() >= this->yMin &&
-           finalPosition.y() <= this->yMax;
-  } else if (this->normal.y() != 0.0f) { // x-plane
-    return finalPosition.y() <= this->yMin <= origin.y() && finalPosition.x() >= this->xMin &&
-           finalPosition.x() <= this->xMax;
-  }
+Vector2f clamp(Vector2f value, Vector2f minVec, Vector2f maxVec) {
+  return Vector2f(max(minVec.x(), min(maxVec.x(), value.x())),
+                  max(minVec.y(), min(maxVec.y(), value.y())));
+}
 
-  return false;
+bool Plane::collide(const Ray *incomingRay, Vector2f &difference) {
+  Vector2f halfExtend = Vector2f(this->getSizeX() / 2.0f, this->getSizeY() / 2.0f);
+  Vector2f tempDifference = incomingRay->getOrigin() - this->center;
+  Vector2f clamped = clamp(tempDifference, -halfExtend, halfExtend);
+  Vector2f closest = this->center + clamped;
+  difference = closest - incomingRay->getOrigin();
+
+  return difference.abs() < incomingRay->getDistance();
 }

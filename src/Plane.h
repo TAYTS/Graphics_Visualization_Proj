@@ -6,7 +6,7 @@
 
 using namespace std;
 class Collidable {
-  virtual bool collide(Ray incomingRay) = 0;
+  virtual bool collide(const Ray *incomingRay, Vector2f &difference) = 0;
 };
 
 struct PlaneIndex {
@@ -38,7 +38,7 @@ public:
   float getSizeY();
 
   // Check if the object will collide with the incoming ray
-  bool collide(Ray incomingRay);
+  bool collide(const Ray *incomingRay, Vector2f &difference);
 
   Vector2f normal, center;
   float xMin, xMax, yMin, yMax, planePos;
