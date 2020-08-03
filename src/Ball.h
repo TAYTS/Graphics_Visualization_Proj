@@ -2,6 +2,7 @@
 #define BALL_H
 
 #include <vector>
+#include <string>
 
 #include "vecmath.h"
 #include "Maze.h"
@@ -9,8 +10,10 @@
 class Ball : public Drawable {
 public:
   Ball(Maze *maze, float radius);
-  Ball(Maze *maze, float radius, float COR, Vector2f center,
-       pair<Vector2f, Vector2f> movementLimit);
+  Ball(Maze *maze, float radius, float COR, Vector2f center, pair<Vector2f, Vector2f> movementLimit,
+       std::string texturePath);
+
+  void loadTexture(std::string texturePath);
 
   // Render the model
   void draw();
@@ -22,6 +25,8 @@ public:
   Matrix4f transMat = Matrix4f::identity();
   Maze *maze;
   pair<Vector2f, Vector2f> movementLimit;
+  GLuint textureID;
+  GLUquadric *quadric;
 
 private:
   // Compute the ball next position

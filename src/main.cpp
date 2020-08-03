@@ -286,8 +286,9 @@ int main(int argc, char **argv) {
 
   // Load object
   Maze maze = Maze("maze_15x15.obj", "maze_top.bmp", "maze_floor.bmp", "maze_wall.bmp");
-  Ball ball(&maze, 0.3f, 0.8f, maze.getMazeStartPos() - Vector2f(0.0f, 0.4f),
-            pair<Vector2f, Vector2f>(maze.getMazeStartPos(), maze.getMazeEndPos()));
+  Ball ball(&maze, 0.4f, 0.8f, maze.getMazeStartPos() - Vector2f(0.0f, 0.4f),
+            pair<Vector2f, Vector2f>(maze.getMazeStartPos(), maze.getMazeEndPos()),
+            "maze_ball.bmp");
 
   // Stored all objects in screen obj
   screen.addObjNode("maze", &maze);

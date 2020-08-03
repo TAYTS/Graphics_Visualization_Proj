@@ -4,6 +4,7 @@
 #include "Ball.h"
 #include "Screen.h"
 #include "Ray.h"
+#include "texture.h"
 
 using namespace std;
 
@@ -20,19 +21,24 @@ Ball::Ball(Maze *maze, float radius) {
   this->transMat =
       Matrix4f::translation(0.0f, 0.0f, this->radius); // Set the ball to be on top of Maze plane
   this->movementLimit = pair<Vector2f, Vector2f>(Vector2f::ZERO, Vector2f::ZERO);
+  this->textureID = 0;
+  this->quadric = gluNewQuadric();
 };
 
 Ball::Ball(Maze *maze, float radius, float COR, Vector2f center,
-           pair<Vector2f, Vector2f> movementLimit)
+           pair<Vector2f, Vector2f> movementLimit, string texturePath)
     : Ball(maze, radius) {
   this->COR = COR;
   this->center = center;
   this->movementLimit = movementLimit;
+  this->loadTexture(texturePath);
 };
 
 ////////////////////////////////////
 //         Public Methods         //
 ////////////////////////////////////
+void Ball::loadTexture(std::string texturePath) { this->textureID = initTexture(texturePath); }
+
 void Ball::draw() {
   // Store the old rendering settings
   glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -45,7 +51,20 @@ void Ball::draw() {
   glPushMatrix();
   // Offset the model view origin to rende the ball
   glTranslated(this->center.x(), this->center.y(), this->radius);
-  glutSolidSphere(this->radius, 12, 12);
+
+  // Setup texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, this->textureID);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  gluQuadricTexture(this->quadric, GL_TRUE);
+  gluSphere(this->quadric, this->radius, 24, 24);
+
+  // Unload texture
+  glDisable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, 0);
 
   glPopMatrix();
 
