@@ -276,8 +276,9 @@ int main(int argc, char **argv) {
 
   // Setup the display window
   int winWidth, windHeight, winPosX, winPosY;
-  winWidth = windHeight = 800;
-  winPosX = winPosY = 500;
+  winWidth = glutGet(GLUT_SCREEN_WIDTH);
+  windHeight = glutGet(GLUT_SCREEN_HEIGHT);
+  winPosX = winPosY = 0;
   string winName = "Maze Game";
   windowSetup(winWidth, windHeight, winPosX, winPosY, winName);
 
