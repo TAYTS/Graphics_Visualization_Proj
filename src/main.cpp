@@ -78,7 +78,7 @@ void resetProjectionView() {
 }
 
 void reshape(int w, int h) {
-  glViewport(0, 0, w * 2, h * 2);
+  glViewport(0, 0, w, h);
   resetProjectionView();
 }
 
@@ -268,33 +268,30 @@ void windowSetup(int winWidth, int winHeight, int winPosX, int winPosY, string w
 
 void updateBallPos(int time) {
   glutPostRedisplay();
-  glutTimerFunc(TIME_STEP, updateBallPos, 0);
+  glutTimerFunc(REFRESH_RATE, updateBallPos, 0);
 }
 
 int main(int argc, char **argv) {
   glutInit(&argc, argv);
 
-  // Load object
-  Maze maze = Maze("maze_15x15.obj");
-  Ball ball(0.5f);
-  ball.pushTransMatrix(Matrix4f::translation(Vector3f(maze.getMazeStartPos(), 0.0f)));
-
-  // Stored all objects in screen obj
-  screen.addObjNode("maze", &maze);
-  screen.addObjNode("ball", &ball);
-
   // Setup the display window
   int winWidth, windHeight, winPosX, winPosY;
   winWidth = windHeight = 800;
-  winPosX = winPosY = 100;
+  winPosX = winPosY = 500;
   string winName = "Maze Game";
   windowSetup(winWidth, windHeight, winPosX, winPosY, winName);
 
   // Initialize OpenGL parameters.
   initRendering();
-  maze.floorTex = initTexture("maze_floor.bmp");
-  maze.topTex = initTexture("maze_top.bmp");
-  maze.wallTex = initTexture("maze_wall.bmp");
+
+  // Load object
+  Maze maze = Maze("maze_15x15.obj", "maze_top.bmp", "maze_floor.bmp", "maze_wall.bmp");
+  Ball ball(&maze, 0.3f, 0.8f, maze.getMazeStartPos() - Vector2f(0.0f, 0.4f),
+            pair<Vector2f, Vector2f>(maze.getMazeStartPos(), maze.getMazeEndPos()));
+
+  // Stored all objects in screen obj
+  screen.addObjNode("maze", &maze);
+  screen.addObjNode("ball", &ball);
 
   // Post Event Handlers
   glutReshapeFunc(reshape);
@@ -303,7 +300,7 @@ int main(int argc, char **argv) {
   glutMouseFunc(mouse);
   glutMotionFunc(motion);
 
-  glutTimerFunc(TIME_STEP, updateBallPos, 0);
+  glutTimerFunc(REFRESH_RATE, updateBallPos, 0);
 
   // Rendering loop
   glutMainLoop();

@@ -4,19 +4,27 @@
 #elif defined _WIN32 || defined _WIN64
 #include <glut.h>
 #endif
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <limits>
+#include <algorithm>
 
 #include "Maze.h"
+#include "texture.h"
 
-#define TEX_SCALE_FACTOR 5 //used to scale number of texture units per unit maze length for width and height
+// used to scale number of texture units per unit maze length for width and height
+#define TEX_SCALE_FACTOR 5
 
 using namespace std;
 
 Maze::Maze() {}
-Maze::Maze(string objFilePath) { this->loadObj(objFilePath); }
+Maze::Maze(string objFilePath, string mazeTopTexturePath, string floorTexturePath,
+           string wallTexturePath) {
+  this->loadObj(objFilePath);
+  this->loadTexture(mazeTopTexturePath, floorTexturePath, wallTexturePath);
+}
 
 void Maze::loadObj(string objFilePath) {
   if (objFilePath.find(".obj") != string::npos) {
@@ -32,6 +40,8 @@ void Maze::loadObj(string objFilePath) {
     this->maxX = numeric_limits<float>::min();
     this->maxY = numeric_limits<float>::min();
     this->maxZ = numeric_limits<float>::min();
+    map<PlaneIndex, Plane> posFacingXPlaneMap, negFacingXPlaneMap, posFacingYPlaneMap,
+        negFacingYPlaneMap;
 
     string lineBuffer;
     while (getline(fin, lineBuffer)) {
@@ -73,11 +83,71 @@ void Maze::loadObj(string objFilePath) {
           exit(1);
         }
 
-        struct Face f {
-          v1, v2, v3, n1, n2, n3
-        };
+        struct Face f = {v1, v2, v3, n1, n2, n3};
         this->faces.push_back(f);
+
+        // Setup table for searching collide planes
+        if (this->normals[n1 - 1].x() != 0.0f && this->normals[n2 - 1].x() != 0.0f &&
+            this->normals[n3 - 1].x() != 0.0f) { // y-plane
+          // Find the plane min & max position
+          auto minmaxY = minmax(
+              {this->vectices[v1 - 1].y(), this->vectices[v2 - 1].y(), this->vectices[v3 - 1].y()});
+
+          // Create plane index struct to plane map indexing
+          struct PlaneIndex yPlaneIndex {
+            this->vectices[v1 - 1].x(), minmaxY.first, minmaxY.second
+          };
+
+          Plane yPlane = Plane(minmaxY.first, minmaxY.second, this->vectices[v1 - 1].x(),
+                               this->normals[n1 - 1].xy());
+
+          if (this->normals[n1 - 1].x() > 0.0f) { // Facing right/positive Y-plane
+            posFacingYPlaneMap.insert({yPlaneIndex, yPlane});
+          } else { // Facing left/negative Y-plane
+            negFacingYPlaneMap.insert({yPlaneIndex, yPlane});
+          }
+        } else if (this->normals[n1 - 1].y() != 0.0f && this->normals[n2 - 1].y() != 0.0f &&
+                   this->normals[n3 - 1].y() != 0.0f) { // x-plane
+          // Find the plane min & max position
+          auto minmaxX = minmax(
+              {this->vectices[v1 - 1].x(), this->vectices[v2 - 1].x(), this->vectices[v3 - 1].x()});
+
+          // Create plane index struct to plane map indexing
+          struct PlaneIndex xPlaneIndex {
+            this->vectices[v1 - 1].y(), minmaxX.first, minmaxX.second
+          };
+
+          Plane xPlane = Plane(minmaxX.first, minmaxX.second, this->vectices[v1 - 1].y(),
+                               this->normals[n1 - 1].xy());
+
+          if (this->normals[n1 - 1].y() > 0.0f) { // Facing top/positive X-plane
+            posFacingXPlaneMap.insert({xPlaneIndex, xPlane});
+          } else { // Facing bottom/positive X-plane
+            negFacingXPlaneMap.insert({xPlaneIndex, xPlane});
+          }
+        }
       }
+    }
+
+    // Convert map to vector
+    this->posFacingXPlane.reserve(posFacingXPlaneMap.size());
+    for (auto planePair : posFacingXPlaneMap) {
+      this->posFacingXPlane.push_back(planePair);
+    }
+
+    this->negFacingXPlane.reserve(negFacingXPlaneMap.size());
+    for (auto planePair : negFacingXPlaneMap) {
+      this->negFacingXPlane.push_back(planePair);
+    }
+
+    this->posFacingYPlane.reserve(posFacingYPlaneMap.size());
+    for (auto planePair : posFacingYPlaneMap) {
+      this->posFacingYPlane.push_back(planePair);
+    }
+
+    this->negFacingYPlane.reserve(negFacingYPlaneMap.size());
+    for (auto planePair : negFacingYPlaneMap) {
+      this->negFacingYPlane.push_back(planePair);
     }
 
     // Close the file
@@ -88,130 +158,91 @@ void Maze::loadObj(string objFilePath) {
     cerr << "Invalid file" << endl;
     exit(1);
   }
+}
 
+void Maze::loadTexture(string mazeTopTexturePath, string floorTexturePath, string wallTexturePath) {
+  if (this->faces.size() == 0) {
+    cerr << "Maze is not initialized yet" << endl;
+    exit(1);
+  }
+
+  GLuint topTexture = 0, floorTexture = 0, wallTexture = 0;
+  topTexture = initTexture(mazeTopTexturePath);
+  floorTexture = initTexture(floorTexturePath);
+  wallTexture = initTexture(wallTexturePath);
+
+  for (auto &face : this->faces) {
+    if (this->normals.at(face.n1 - 1)[2] != 0.0f) { // Z direction
+      // Set the texture based on the type of face
+      // <= 0.1f : Floor texture
+      // > 0.1f  : Maze top surface texture
+      face.texture = this->vectices.at(face.v1 - 1)[2] <= 0.1f ? floorTexture : topTexture;
+
+      // Calculate the texture mapping
+      face.t1_x = (this->vectices.at(face.v1 - 1)[0] - this->minX) * TEX_SCALE_FACTOR /
+                  (this->maxX - this->minX);
+      face.t1_y = (this->vectices.at(face.v1 - 1)[1] - this->minY) * TEX_SCALE_FACTOR /
+                  (this->maxY - this->minY);
+      face.t2_x = (this->vectices.at(face.v2 - 1)[0] - this->minX) * TEX_SCALE_FACTOR /
+                  (this->maxX - this->minX);
+      face.t2_y = (this->vectices.at(face.v2 - 1)[1] - this->minY) * TEX_SCALE_FACTOR /
+                  (this->maxY - this->minY);
+      face.t3_x = (this->vectices.at(face.v3 - 1)[0] - this->minX) * TEX_SCALE_FACTOR /
+                  (this->maxX - this->minX);
+      face.t3_y = (this->vectices.at(face.v3 - 1)[1] - this->minY) * TEX_SCALE_FACTOR /
+                  (this->maxY - this->minY);
+    } else if (this->normals.at(face.n1 - 1)[1] != 0.0f) { // Y direction
+      // Set wall texture
+      face.texture = wallTexture;
+
+      // Calculate the texture mapping
+      face.t1_x = (this->vectices.at(face.v1 - 1)[0] - this->minX) / this->maxZ;
+      face.t1_y = (this->vectices.at(face.v1 - 1)[2]) / this->maxZ;
+      face.t2_x = (this->vectices.at(face.v2 - 1)[0] - this->minX) / this->maxZ;
+      face.t2_y = (this->vectices.at(face.v2 - 1)[2]) / this->maxZ;
+      face.t3_x = (this->vectices.at(face.v3 - 1)[0] - this->minX) / this->maxZ;
+      face.t3_y = (this->vectices.at(face.v3 - 1)[2]) / this->maxZ;
+    } else if (this->normals.at(face.n1 - 1)[0] != 0.0f) { // X direction
+      // Set wall texture
+      face.texture = wallTexture;
+
+      // Calculate the texture mapping
+      face.t1_x = (this->vectices.at(face.v1 - 1)[1] - this->minY) / this->maxZ;
+      face.t1_y = (this->vectices.at(face.v1 - 1)[2]) / this->maxZ;
+      face.t2_x = (this->vectices.at(face.v2 - 1)[1] - this->minY) / this->maxZ;
+      face.t2_y = (this->vectices.at(face.v2 - 1)[2]) / this->maxZ;
+      face.t3_x = (this->vectices.at(face.v3 - 1)[1] - this->minY) / this->maxZ;
+      face.t3_y = (this->vectices.at(face.v3 - 1)[2]) / this->maxZ;
+    }
+  }
+
+  cout << "Done loading texture" << endl;
 }
 
 void Maze::draw() {
-  // enable texturing
+  // Update the Maze and enable texturing
   glEnable(GL_TEXTURE_2D);
-  
+
   for (auto face : this->faces) {
-    if ((this->normals.at(face.n1 - 1)[2] + this->normals.at(face.n2 - 1)[2] +
-        this->normals.at(face.n3 - 1)[2])/3 > 0.5f) {
-        // check if face is facing +z, towards player
-
-        if (this->vectices.at(face.v1 - 1)[2] <= 0.2f &&
-            this->vectices.at(face.v2 - 1)[2] <= 0.2f &&
-            this->vectices.at(face.v3 - 1)[2] <= 0.2f) {
-          // applies floor texture to faces that are the floor
-          glBindTexture(GL_TEXTURE_2D, floorTex);
-          glBegin(GL_TRIANGLES);
-          glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v1 - 1)[0] - minX) * TEX_SCALE_FACTOR /
-                               (maxX - minX),
-                       0 + 0.5 * (this->vectices.at(face.v1 - 1)[1] - minY) * TEX_SCALE_FACTOR /
-                               (maxY - minY));
-          glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
-                     this->normals.at(face.n1 - 1)[2]);
-          glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
-                     this->vectices.at(face.v1 - 1)[2]);
-          glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v2 - 1)[0] - minX) * TEX_SCALE_FACTOR /
-                               (maxX - minX),
-                       0 + 0.5 * (this->vectices.at(face.v2 - 1)[1] - minY) * TEX_SCALE_FACTOR /
-                               (maxY - minY));
-          glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
-                     this->normals.at(face.n2 - 1)[2]);
-          glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
-                     this->vectices.at(face.v2 - 1)[2]);
-          glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v3 - 1)[0] - minX) * TEX_SCALE_FACTOR /
-                               (maxX - minX),
-                       0 + 0.5 * (this->vectices.at(face.v3 - 1)[1] - minY) * TEX_SCALE_FACTOR /
-                               (maxY - minY));
-          glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
-                     this->normals.at(face.n3 - 1)[2]);
-          glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
-                     this->vectices.at(face.v3 - 1)[2]);
-          glEnd();
-        } else {
-          // applies texture to faces that are on the top of the maze
-          glBindTexture(GL_TEXTURE_2D, topTex);
-          glBegin(GL_TRIANGLES);
-          glTexCoord2d(0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[0] - minX) * TEX_SCALE_FACTOR /
-                                 (maxX - minX),
-                       0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[1] - minY) * TEX_SCALE_FACTOR /
-                                 (maxY - minY));
-          glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
-                     this->normals.at(face.n1 - 1)[2]);
-          glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
-                     this->vectices.at(face.v1 - 1)[2]);
-          glTexCoord2d(0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[0] - minX) * TEX_SCALE_FACTOR /
-                                 (maxX - minX),
-                       0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[1] - minY) * TEX_SCALE_FACTOR /
-                                 (maxY - minY));
-          glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
-                     this->normals.at(face.n2 - 1)[2]);
-          glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
-                     this->vectices.at(face.v2 - 1)[2]);
-          glTexCoord2d(0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[0] - minX) * TEX_SCALE_FACTOR /
-                                 (maxX - minX),
-                       0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[1] - minY) * TEX_SCALE_FACTOR /
-                                 (maxY - minY));
-          glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
-                     this->normals.at(face.n3 - 1)[2]);
-          glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
-                     this->vectices.at(face.v3 - 1)[2]);
-          glEnd();
-        }
-    } else if(fabs(this->normals.at(face.n1 - 1)[1] + this->normals.at(face.n2 - 1)[1] +
-        this->normals.at(face.n3 - 1)[1]) >0.5f){
-      // checks that face is facing +y or -y direction and applies wall texture, mapped to the x coordinates
-
-      glBindTexture(GL_TEXTURE_2D, wallTex);
-      glBegin(GL_TRIANGLES);
-      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v1 - 1)[0] - minX) / (maxZ),
-                   0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[2] ) / (maxZ ));
-      glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
-                 this->normals.at(face.n1 - 1)[2]);
-      glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
-                 this->vectices.at(face.v1 - 1)[2]);
-      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v2 - 1)[0] - minX) / (maxZ),
-                   0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[2] ) / (maxZ));
-      glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
-                 this->normals.at(face.n2 - 1)[2]);
-      glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
-                 this->vectices.at(face.v2 - 1)[2]);
-      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v3 - 1)[0] - minX) / (maxZ),
-                   0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[2] ) / (maxZ));
-      glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
-                 this->normals.at(face.n3 - 1)[2]);
-      glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
-                 this->vectices.at(face.v3 - 1)[2]);
-      glEnd();
-    } else {
-      // else the face is facing +y or -y and applies wall texture, mapped to the y coordinates
-      glBindTexture(GL_TEXTURE_2D, wallTex);
-      glBegin(GL_TRIANGLES);
-      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v1 - 1)[1] - minY) / (maxZ),
-                   0.5 + 0.5 * (this->vectices.at(face.v1 - 1)[2]) / (maxZ));
-      glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
-                 this->normals.at(face.n1 - 1)[2]);
-      glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
-                 this->vectices.at(face.v1 - 1)[2]);
-      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v2 - 1)[1] - minY) / (maxZ),
-                   0.5 + 0.5 * (this->vectices.at(face.v2 - 1)[2]) / (maxZ));
-      glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
-                 this->normals.at(face.n2 - 1)[2]);
-      glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
-                 this->vectices.at(face.v2 - 1)[2]);
-      glTexCoord2d(0 + 0.5 * (this->vectices.at(face.v3 - 1)[1] - minY) / (maxZ),
-                   0.5 + 0.5 * (this->vectices.at(face.v3 - 1)[2]) / (maxZ));
-      glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
-                 this->normals.at(face.n3 - 1)[2]);
-      glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
-                 this->vectices.at(face.v3 - 1)[2]);
-      glEnd();
-    }
+    glBindTexture(GL_TEXTURE_2D, face.texture);
+    glBegin(GL_TRIANGLES);
+    glTexCoord2d(face.t1_x, face.t1_y);
+    glNormal3d(this->normals.at(face.n1 - 1)[0], this->normals.at(face.n1 - 1)[1],
+               this->normals.at(face.n1 - 1)[2]);
+    glVertex3d(this->vectices.at(face.v1 - 1)[0], this->vectices.at(face.v1 - 1)[1],
+               this->vectices.at(face.v1 - 1)[2]);
+    glTexCoord2d(face.t2_x, face.t2_y);
+    glNormal3d(this->normals.at(face.n2 - 1)[0], this->normals.at(face.n2 - 1)[1],
+               this->normals.at(face.n2 - 1)[2]);
+    glVertex3d(this->vectices.at(face.v2 - 1)[0], this->vectices.at(face.v2 - 1)[1],
+               this->vectices.at(face.v2 - 1)[2]);
+    glTexCoord2d(face.t3_x, face.t3_y);
+    glNormal3d(this->normals.at(face.n3 - 1)[0], this->normals.at(face.n3 - 1)[1],
+               this->normals.at(face.n3 - 1)[2]);
+    glVertex3d(this->vectices.at(face.v3 - 1)[0], this->vectices.at(face.v3 - 1)[1],
+               this->vectices.at(face.v3 - 1)[2]);
+    glEnd();
   }
-  
 
   glDisable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -224,3 +255,126 @@ float Maze::getSizeZ() { return this->maxY - this->minY; }
 Vector2f Maze::getMazeStartPos() { return Vector2f(0.0f, this->maxY); }
 
 Vector2f Maze::getMazeEndPos() { return Vector2f(0.0f, this->minY); }
+
+vector<pair<PlaneIndex, Plane> *> Maze::getPotentialCollidePlanePair(Ray &ray) {
+  vector<pair<PlaneIndex, Plane> *> output;
+
+  if (ray.getDirection().x() != 0) { // Check Y plane
+    int yPlaneIdx = this->binarySearchPlane(
+        ray, ray.getDirection().x() > 0 ? this->negFacingYPlane : this->posFacingYPlane, false);
+
+    if (yPlaneIdx >= 0) {
+      output.push_back(&(ray.getDirection().x() > 0 ? this->negFacingYPlane : this->posFacingYPlane)
+                            .at(yPlaneIdx));
+    }
+  }
+
+  if (ray.getDirection().y() != 0) { // Check X plane
+    int xPlaneIdx = this->binarySearchPlane(
+        ray, ray.getDirection().y() > 0 ? this->negFacingXPlane : this->posFacingXPlane, true);
+    if (xPlaneIdx >= 0) {
+      output.push_back(&(ray.getDirection().y() > 0 ? this->negFacingXPlane : this->posFacingXPlane)
+                            .at(xPlaneIdx));
+    }
+  }
+  return output;
+}
+
+int Maze::binarySearchPlane(Ray &ray, vector<pair<PlaneIndex, Plane>> &planeTable,
+                            bool xPlane) const {
+  int lo = 0, hi = planeTable.size() - 1, mid = 0;
+  float startX = ray.getOrigin().x();
+  float startY = ray.getOrigin().y();
+  float endX = ray.getEndpoint().x();
+  float endY = ray.getEndpoint().y();
+
+  while (lo <= hi) {
+    mid = lo + ((hi - lo) / 2);
+
+    pair<PlaneIndex, Plane> planePair = planeTable.at(mid);
+
+    if (xPlane) {
+      if (ray.getDirection().y() > 0) { // ray pointing upward, plane pointing downward
+        if (planePair.first.planePos >= startY && planePair.first.planePos <= endY) {
+          // X plane is in between the start and end of the ray
+          if ((startX >= planePair.first.minPos && startX <= planePair.first.maxPos) ||
+              (endX >= planePair.first.minPos && endX <= planePair.first.maxPos)) {
+            // ray is in between the plane
+            return mid;
+          } else if (startX > planePair.first.minPos &&
+                     startX > planePair.first.maxPos) { // X plane is on the left side of the ray
+            lo = mid + 1;
+          } else { // X plane is on the right side of the ray
+            hi = mid - 1;
+          }
+        } else if (planePair.first.planePos < startY) { // X plane is below the start of the ray
+          lo = mid + 1;
+        } else { // X plane above the end of the ray
+          hi = mid - 1;
+        }
+      } else if (ray.getDirection().y() < 0) { // ray pointing downward, plane pointing upward
+        if (planePair.first.planePos <= startY && planePair.first.planePos >= endY) {
+          // X plane is in between the start and end of the ray
+          if ((startX >= planePair.first.minPos && startX <= planePair.first.maxPos) ||
+              (endX >= planePair.first.minPos && endX <= planePair.first.maxPos)) {
+            // ray is in between the plane
+            return mid;
+          } else if (startX > planePair.first.minPos &&
+                     startX > planePair.first.maxPos) { // X plane is on the left side of the ray
+            lo = mid + 1;
+          } else { // X plane is on the right side of the ray
+            hi = mid - 1;
+          }
+        } else if (planePair.first.planePos > startY) { // X plane is above the start of the ray
+          hi = mid - 1;
+        } else { // X plane below the end of the ray
+          lo = mid + 1;
+        }
+      } else { // ray is either parallel or a point
+        return -1;
+      }
+    } else {                            // Y plane
+      if (ray.getDirection().x() > 0) { // ray pointing right, plane pointing left
+        if (planePair.first.planePos >= startX && planePair.first.planePos <= endX) {
+          // Y plane is in between the start and end of the ray
+          if ((startY >= planePair.first.minPos && startY <= planePair.first.maxPos) ||
+              (endY >= planePair.first.minPos && endY <= planePair.first.maxPos)) {
+            // ray is in between the plane
+            return mid;
+          } else if (startY > planePair.first.minPos &&
+                     startY > planePair.first.maxPos) { // Y plane is below the ray
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        } else if (planePair.first.planePos < startX) { // Y plane is on the left side of the ray
+          lo = mid + 1;
+        } else { // Y plane is on the right side of the ray
+          hi = mid - 1;
+        }
+      } else if (ray.getDirection().x() < 0) { // ray pointing left, plane pointing right
+        if (planePair.first.planePos <= startX && planePair.first.planePos >= endX) {
+          // Y plane is in between the start and end of the ray
+          if ((startY >= planePair.first.minPos && startY <= planePair.first.maxPos) ||
+              (endY >= planePair.first.minPos && endY <= planePair.first.maxPos)) {
+            // ray is in between the plane
+            return mid;
+          } else if (startY > planePair.first.minPos &&
+                     startY > planePair.first.maxPos) { // Y plane is below the ray
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        } else if (planePair.first.planePos > startX) { // Y plane is on the right side of the ray
+          hi = mid - 1;
+        } else { // Y plane is on the left side of the ray
+          lo = mid + 1;
+        }
+      } else { // ray is either parallel or a point
+        return -1;
+      }
+    }
+  }
+
+  return -1;
+}
