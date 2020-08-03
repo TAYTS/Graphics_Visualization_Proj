@@ -1,9 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <string.h>
 
-#include "Screen.h"
+#include "texture.h"
 
 using namespace std;
 
@@ -12,8 +11,6 @@ using namespace std;
 ////////////////////////////////////
 #define IMG_WIDTH 128
 #define IMG_HEIGHT 128
-
-// Texture related
 
 GLubyte *readBmpTex(string bmpFile) {
   // reads a bitmap file with 8 bit per colour as texture data
@@ -107,8 +104,6 @@ GLubyte *readBmpTex(string bmpFile) {
 }
 
 GLuint initTexture(string bmpFile) {
-  /* create texture object, texture environment and
-     read texture from 128x128 pixel bitmap file with 8 bit per colour */
   GLuint texInt;
   glGenTextures(1, &texInt);
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -122,40 +117,4 @@ GLuint initTexture(string bmpFile) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   return texInt;
-}
-
-void finishTexture(int texCount, GLuint *texObj) {
-  /* disable texturing and unbind texture */
-  glDisable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glDeleteTextures(4, texObj);
-}
-
-void finishTexture(GLuint texObj) {
-  /* disable texturing and unbind texture */
-  glDisable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glDeleteTextures(1, &texObj);
-}
-
-void DrawTextureQuad(GLuint texObj) {
-  // used to check proper loading of texture
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, texObj);
-
-  glBegin(GL_QUADS);
-  {
-    glTexCoord2d(0.0, 0.0);
-    glVertex2d(-12.5, -12.5);
-    glTexCoord2d(5.0, 0.0);
-    glVertex2d(12.5, -12.5);
-    glTexCoord2d(5.0, 5.0);
-    glVertex2d(12.5, 12.5);
-    glTexCoord2d(0.0, 5.0);
-    glVertex2d(-12.5, 12.5);
-  }
-  glEnd();
-
-  glDisable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, 0);
 }
