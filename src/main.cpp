@@ -248,9 +248,49 @@ void motion(int x, int y) {
   }
 }
 
+void renderText() {
+
+  vector<string> menu = {"Pan to rotate the maze", "Press 'T' to reset the maze position",
+                         "Press 'B' to enlarge the maze", "Press 'S' to reduce the maze"};
+
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  glColor3f(0.0f, 1.0f, 1.0f);
+  glDisable(GL_LIGHTING);
+  glLineWidth(5);
+
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+
+  gluOrtho2D(0, glutGet(GLUT_WINDOW_WIDTH), 0, glutGet(GLUT_WINDOW_HEIGHT));
+
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+
+  float startPos = 500.0f;
+  for (string menuStr : menu) {
+    glLoadIdentity();
+    glScalef(0.2f, 0.2f, 1.0f);
+    glTranslatef(100.0f, startPos, 0.0f);
+    for (char ch : menuStr) {
+      glutStrokeCharacter(GLUT_STROKE_ROMAN, ch);
+    }
+    startPos -= 150.0f;
+  }
+
+  glPopMatrix();
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPopAttrib();
+}
+
 void drawScene() {
   // Clear the rendering window
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  renderText();
 
   screen.drawScreen();
 
