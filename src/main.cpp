@@ -26,16 +26,38 @@ Screen screen = Screen();
 //      Modification Functions    //
 ////////////////////////////////////
 void RotateModel(double angle, Vector3f axis) {
-  double mat[16];
+  double matrix[16];
+  double origMatrix[16];
 
-  glGetDoublev(GL_MODELVIEW_MATRIX, mat);
+  glGetDoublev(GL_MODELVIEW_MATRIX, matrix);
+  glGetDoublev(GL_MODELVIEW_MATRIX, origMatrix);
+  Matrix4f origTransMatrix = Matrix4f(origMatrix[0], origMatrix[4], origMatrix[8], origMatrix[12],
+                                      origMatrix[1], origMatrix[5], origMatrix[9], origMatrix[13],
+                                      origMatrix[2], origMatrix[6], origMatrix[10], origMatrix[14],
+                                      origMatrix[3], origMatrix[7], origMatrix[11], origMatrix[15]);
+
   glLoadIdentity();
 
-  glTranslated(mat[12], mat[13], mat[14]);
+  glTranslated(matrix[12], matrix[13], matrix[14]);
   glRotated(angle, axis[0], axis[1], axis[2]);
-  glTranslated(-mat[12], -mat[13], -mat[14]);
+  glTranslated(-matrix[12], -matrix[13], -matrix[14]);
 
-  glMultMatrixd(mat);
+  glGetDoublev(GL_MODELVIEW_MATRIX, matrix);
+  Matrix4f transMatrix = Matrix4f(matrix[0], matrix[4], matrix[8], matrix[12], matrix[1], matrix[5],
+                                  matrix[9], matrix[13], matrix[2], matrix[6], matrix[10],
+                                  matrix[14], matrix[3], matrix[7], matrix[11], matrix[15]) *
+                         origTransMatrix;
+
+  Vector4f normal = Vector4f(0, 0, 1, 0);
+  Vector4f transNormal = transMatrix * normal;
+  float delta = Vector4f::dot(transNormal, normal);
+
+  if (delta >= 0.80f) {
+    glMultMatrixd(origMatrix);
+  } else {
+    glLoadIdentity();
+    glMultMatrixd(origMatrix);
+  }
 }
 
 void ScaleModel(double scale) {
