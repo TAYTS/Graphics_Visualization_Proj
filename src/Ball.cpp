@@ -186,7 +186,10 @@ void Ball::computeNextPos() {
 bool Ball::updateVelocityAndPositionIfCollide(Vector2f &velocity, Vector2f &center) {
   bool collide = false;
   // Get the directions in the major axis based on the velocity vector
-  vector<Vector2f> dirs = getNormalDirectionFromVelocity(&velocity);
+  vector<Vector2f> dirs = {
+      Vector2f(1, 0), Vector2f(-1, 0), Vector2f(0, 1),  Vector2f(0, -1),
+      Vector2f(1, 1), Vector2f(1, -1), Vector2f(-1, 1), Vector2f(-1, -1),
+  };
 
   for (auto dir : dirs) {
     Ray ballDirection = Ray(center, dir, this->radius);
