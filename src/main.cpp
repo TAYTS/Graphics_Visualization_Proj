@@ -73,14 +73,22 @@ void ScaleModel(double scale) {
   glMultMatrixd(mat);
 }
 
-////////////////////////////////////
-//       Rendering Functions      //
-////////////////////////////////////
 void resetView() {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 }
 
+void ResetGame() {
+  resetView();
+  Ball *ball = (Ball *)screen.getObject("ball");
+  if (ball != NULL) {
+    ball->resetPosition();
+  }
+}
+
+////////////////////////////////////
+//       Rendering Functions      //
+////////////////////////////////////
 void resetProjectionView() {
   int w = glutGet(GLUT_WINDOW_WIDTH);
   int h = glutGet(GLUT_WINDOW_HEIGHT);
@@ -181,6 +189,11 @@ void keyboard(unsigned char key, int x, int y) {
     resetView();
     break;
 
+  case 'r':
+    // Reset the game
+    ResetGame();
+    break;
+
   default:
     cout << "Unhandled key press " << key << "." << endl;
   }
@@ -273,7 +286,8 @@ void motion(int x, int y) {
 void renderText() {
 
   vector<string> menu = {"Pan to rotate the maze", "Press 'T' to reset the maze position",
-                         "Press 'B' to enlarge the maze", "Press 'S' to reduce the maze"};
+                         "Press 'B' to enlarge the maze", "Press 'S' to reduce the maze",
+                         "Press 'R' to reset the game"};
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
@@ -290,7 +304,7 @@ void renderText() {
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
 
-  float startPos = 500.0f;
+  float startPos = 700.0f;
   for (string menuStr : menu) {
     glLoadIdentity();
     glScalef(0.2f, 0.2f, 1.0f);
