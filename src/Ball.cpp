@@ -15,10 +15,8 @@ Ball::Ball(Maze *maze, float radius) {
   this->radius = radius;
   this->COR = 1.0f;
   this->center = Vector2f::ZERO;
+  this->initCenter = Vector2f::ZERO;
   this->velocity = Vector2f::ZERO;
-  this->counterVelocity = this->velocity;
-  this->transMat =
-      Matrix4f::translation(0.0f, 0.0f, this->radius); // Set the ball to be on top of Maze plane
   this->movementLimit = pair<Vector2f, Vector2f>(Vector2f::ZERO, Vector2f::ZERO);
 };
 
@@ -27,6 +25,7 @@ Ball::Ball(Maze *maze, float radius, float COR, Vector2f center,
     : Ball(maze, radius) {
   this->COR = COR;
   this->center = center;
+  this->initCenter = center;
   this->movementLimit = movementLimit;
 };
 
@@ -53,6 +52,11 @@ void Ball::draw() {
   glPopAttrib();
 
   this->computeNextPos();
+}
+
+void Ball::resetPosition() {
+  this->center = this->initCenter;
+  this->velocity = Vector2f::ZERO;
 }
 
 vector<Vector2f> getNormalDirectionFromVelocity(Vector2f *velocity) {
@@ -186,7 +190,10 @@ void Ball::computeNextPos() {
 bool Ball::updateVelocityAndPositionIfCollide(Vector2f &velocity, Vector2f &center) {
   bool collide = false;
   // Get the directions in the major axis based on the velocity vector
-  vector<Vector2f> dirs = getNormalDirectionFromVelocity(&velocity);
+  vector<Vector2f> dirs = {
+      Vector2f(1, 0), Vector2f(-1, 0), Vector2f(0, 1),  Vector2f(0, -1),
+      Vector2f(1, 1), Vector2f(1, -1), Vector2f(-1, 1), Vector2f(-1, -1),
+  };
 
   for (auto dir : dirs) {
     Ray ballDirection = Ray(center, dir, this->radius);

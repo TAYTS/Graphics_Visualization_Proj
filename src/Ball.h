@@ -15,15 +15,19 @@ public:
   // Render the model
   void draw();
 
+  // Return the ball to the original position
+  void resetPosition();
+
   // attributes
   float radius;
   float COR; // Coefficient of restituition
-  Vector2f center, velocity, counterVelocity;
-  Matrix4f transMat = Matrix4f::identity();
+  Vector2f center, velocity;
   Maze *maze;
   pair<Vector2f, Vector2f> movementLimit;
 
 private:
+  Vector2f initCenter;
+
   // Compute the ball next position
   void computeNextPos();
 
