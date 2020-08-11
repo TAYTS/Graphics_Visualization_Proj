@@ -279,7 +279,7 @@ void renderText() {
 
   glColor3f(0.0f, 1.0f, 1.0f);
   glDisable(GL_LIGHTING);
-  glLineWidth(5);
+  glLineWidth(1);
 
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
