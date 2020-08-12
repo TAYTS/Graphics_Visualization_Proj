@@ -36,9 +36,8 @@ void Ball::draw() {
   // Store the old rendering settings
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-  // Set line color for render the gravity force line
-  // change ball to different color
-  GLfloat diffuseColor[4] = {1.0, 0.0, 0.0, 1.0};
+  // Change ball to different color
+  GLfloat diffuseColor[4] = {0.4, 1.0, 0.4, 1.0};
   glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseColor);
 
   glPushMatrix();
