@@ -23,15 +23,16 @@ Input the following commands on the Terminal:
 ## For Windows
 
 Download and install CMake for Windows: https://cmake.org/download/
+
 Download and install Visual Studio: https://visualstudio.microsoft.com/
 
 1. Copy `win\glut32.dll` to `C:\WINDOWS\SysWOW64\`
-2. Input the following commands on the CMD Terminal: 
-   - cd to the folder: `build`
+2. Input the following commands on the CMD Terminal:
+   - Go to the `./build` folder
    - `cmake ..` (if you have more than one VS version, using -G to specify one, e.g., cmake .. -G "Visual Studio 14 2015")
-3. Open the `Maze.sln` file in `build` folder with your Visual Studio
+3. Open the `Maze.sln` file in `./build` folder with your Visual Studio
 4. Build and Run the Visual Studio Project
-5. Copy files from data folder to where the executable is.
+5. Copy files from `./data` folder to where the `MAZE.exe` file is.
 
 # Running the application
 
